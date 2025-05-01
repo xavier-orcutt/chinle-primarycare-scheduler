@@ -1,2 +1,2 @@
 # chinle-primarycare-scheduler
-A scheduling tool for the primary care departments at Chinle Hospital, built in Python.
+A scheduling tool for the primary care departments at Chinle Hospital, built in Python. In development. 
