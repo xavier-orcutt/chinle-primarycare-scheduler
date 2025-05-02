@@ -1,0 +1,97 @@
+# Internal medicine rules
+
+# Clinic-level rules 
+clinic_rules:
+
+  clinic_days:
+    - Monday
+    - Tuesday
+    - Wednesday
+    - Thursday
+    - Friday
+
+  clinic_sessions:
+    Monday: [morning, afternoon]
+    Tuesday: [morning, afternoon]
+    Wednesday: [morning, afternoon]
+    Thursday: [afternoon]  
+    Friday: [morning, afternoon]
+
+  random_day_off:
+    enabled: true
+    eligible_days: [Monday, Tuesday, Wednesday, Friday]   # Thursday is excluded
+    substitute_if_holiday: true                           # If there's a holiday that week, skip assigning an RDO
+    substitute_if_leave: true                             # If placed on leave that week, counts as RDO for week 
+    override_roles: [NP, PA]                              # NP/PA still get an RDO even if there’s a holiday that week
+                                              
+  holiday_week_rdo_followup:                              # MD/DO get an RDO the Monday or Friday the week after a holiday 
+    enabled: true
+    day_options: [Monday, Friday]
+    applies_to_roles: [MD, DO]
+
+  inpatient_schedule:
+    week_starts_on: Tuesday
+    week_ends_on: Monday
+    pre_inpatient_rdo: Monday     # RDO the day before inpatient starts
+    post_inpatient_rdo: Friday    # RDO after inpatient ends
+
+  staffing:
+    min_providers_per_session: 1
+    max_providers_per_session: 4
+
+  holiday_dates:
+    - 2025-01-01  # New Year's Day
+    - 2025-01-20  # MLK Day
+    - 2025-02-17  # Presidents' Day
+    - 2025-05-26  # Memorial Day
+    - 2025-07-04  # Independence Day
+    - 2025-09-01  # Labor Day
+    - 2025-11-11  # Veterans Day
+    - 2025-11-27  # Thanksgiving
+    - 2025-12-25  # Christmas
+
+# Provider-level rules 
+providers:
+  Bornstein:
+    role: MD
+    admin_sessions:
+    max_clinics_per_week:
+  
+  Mccrae:
+    role: PA
+    admin_sessions:
+    max_clinics_per_week:
+
+  Miles: 
+    role: MD
+    admin_sessions:
+    max_clinics_per_week:
+    special_clinics: 
+      - type: addiction_medicine
+  
+  Orcutt:
+    role: MD
+    admin_sessions: 3
+    max_clinics_per_week: 5
+    special_clinics: 
+      - type: chinle_valley_school
+  
+  Selig:
+    role: NP
+    admin_sessions:
+    max_clinics_per_week:
+  
+  Stewart:
+    role: MD
+    admin_sessions:
+    max_clinics_per_week:
+  
+  Tanay:
+    role: NP
+    admin_sessions:
+    max_clinics_per_week:
+  
+  Wadlin:
+    role: MD
+    admin_sessions:
+    max_clinics_per_week:
