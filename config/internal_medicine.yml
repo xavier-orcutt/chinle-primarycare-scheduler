@@ -3,6 +3,7 @@
 # Clinic-level rules 
 clinic_rules:
 
+  # HARD RULES 
   clinic_days:
     - Monday
     - Tuesday
@@ -30,8 +31,9 @@ clinic_rules:
     applies_to_roles: [MD, DO]
 
   inpatient_schedule:
-    week_starts_on: Tuesday
-    week_ends_on: Monday
+    inpatient_block_length: 7
+    inpatient_starts_on: Tuesday
+    inpatient_ends_on: Monday
     pre_inpatient_rdo: Monday     # RDO the day before inpatient starts
     post_inpatient_rdo: Friday    # RDO after inpatient ends
 
@@ -50,6 +52,11 @@ clinic_rules:
     - 2025-11-27  # Thanksgiving
     - 2025-12-25  # Christmas
 
+  # SOFT RULES
+  clinic_intensity_limit:
+    enabled: true
+    enforce_ratio_on_short_weeks: true
+
 # Provider-level rules 
 providers:
   Bornstein:
@@ -59,39 +66,35 @@ providers:
   
   Mccrae:
     role: PA
-    admin_sessions:
-    max_clinics_per_week:
+    admin_sessions: 2
+    max_clinics_per_week: 6
 
   Miles: 
     role: MD
-    admin_sessions:
-    max_clinics_per_week:
-    special_clinics: 
-      - type: addiction_medicine
+    admin_sessions: 5
+    max_clinics_per_week: 3
   
   Orcutt:
     role: MD
     admin_sessions: 3
     max_clinics_per_week: 5
-    special_clinics: 
-      - type: chinle_valley_school
   
   Selig:
     role: NP
-    admin_sessions:
-    max_clinics_per_week:
+    admin_sessions: 2
+    max_clinics_per_week: 6
   
   Stewart:
     role: MD
-    admin_sessions:
-    max_clinics_per_week:
+    admin_sessions: 4
+    max_clinics_per_week: 4
   
   Tanay:
     role: NP
-    admin_sessions:
-    max_clinics_per_week:
+    admin_sessions: 2
+    max_clinics_per_week: 6
   
   Wadlin:
     role: MD
-    admin_sessions:
-    max_clinics_per_week:
+    admin_sessions: 4
+    max_clinics_per_week: 4
