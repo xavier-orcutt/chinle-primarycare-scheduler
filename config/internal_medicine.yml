@@ -31,7 +31,7 @@ clinic_rules:
     applies_to_roles: [MD, DO]
 
   inpatient_schedule:
-    inpatient_block_length: 7
+    inpatient_length: 7
     inpatient_starts_on: Tuesday
     inpatient_ends_on: Monday
     pre_inpatient_rdo: Monday     # RDO the day before inpatient starts
@@ -61,40 +61,32 @@ clinic_rules:
 providers:
   Bornstein:
     role: MD
-    admin_sessions:
-    max_clinics_per_week:
+    max_clinics_per_week: 4 
   
   Mccrae:
     role: PA
-    admin_sessions: 2
     max_clinics_per_week: 6
 
   Miles: 
     role: MD
-    admin_sessions: 5
     max_clinics_per_week: 3
   
   Orcutt:
     role: MD
-    admin_sessions: 3
     max_clinics_per_week: 5
   
   Selig:
     role: NP
-    admin_sessions: 2
     max_clinics_per_week: 6
   
   Stewart:
     role: MD
-    admin_sessions: 4
     max_clinics_per_week: 4
   
   Tanay:
     role: NP
-    admin_sessions: 2
     max_clinics_per_week: 6
   
   Wadlin:
     role: MD
-    admin_sessions: 4
     max_clinics_per_week: 4
