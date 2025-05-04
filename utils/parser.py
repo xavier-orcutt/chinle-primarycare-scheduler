@@ -9,14 +9,14 @@ def load_yaml_config(yml_path):
         config = yaml.safe_load(f)
     return config
 
-# Load a CSV and filter to internal medicine providers
+# Load a CSV and filter for providers in relevant department
 def load_and_filter_csv(csv_path, provider_list):
     df = pd.read_csv(Path(csv_path))
     
     # Convert to date time
     df['date'] = pd.to_datetime(df['date'])
     
-    # Filter for internal medicine providers 
+    # Filter for department providers 
     df = df[df['provider'].isin(provider_list)].copy()
     return df
 
