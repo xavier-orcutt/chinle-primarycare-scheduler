@@ -4,8 +4,10 @@ from utils.parser import parse_inputs
 from utils.calendar import generate_clinic_calendar
 from constraints.internal_medicine import (
     create_shift_variables,
-    add_inpatient_rdo_constraints,
-    add_inpatient_block_constraints,
+    add_leave_constraints,
+    add_rdo_constraints,
+    add_clinic_count_constraints,
+    add_min_max_staffing_constraints
 )
 from ortools.sat.python import cp_model
 
@@ -21,9 +23,11 @@ calendar = generate_clinic_calendar(date(2025, 6, 2), date(2025, 6, 6), config['
 model = cp_model.CpModel()
 shift_vars = create_shift_variables(model, list(config['providers'].keys()), calendar)
 
-# Add constraints
-add_inpatient_rdo_constraints(model, shift_vars, inpatient_starts_df, config['clinic_rules'])
-add_inpatient_block_constraints(model, shift_vars, inpatient_days_df)
+# Add constraints 
+add_clinic_count_constraints(model, shift_vars, config['providers'], calendar, leave_df, inpatient_starts_df, inpatient_days_df, config['clinic_rules'])
+add_leave_constraints(model, shift_vars, leave_df)
+add_min_max_staffing_constraints(model, shift_vars, calendar, config['clinic_rules'])
+add_rdo_constraints(model, shift_vars, leave_df, inpatient_days_df, config['clinic_rules'], config['providers'])
 
 # Solve model
 solver = cp_model.CpSolver()
