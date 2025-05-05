@@ -72,6 +72,7 @@ def add_rdo_constraints(model,
       - NP/PAs DO get RDO even during holiday weeks
       - Any provider with inpatient or leave that week does NOT get additional RDO
       - RDO must occur on an eligible weekday (e.g., Mon/Tue/Wed/Fri)
+      - If a provider has an rdo_preference set in YAML, it must occur on that day
 
     Parameters:
     ----------
@@ -97,14 +98,13 @@ def add_rdo_constraints(model,
     holiday_dates = set(clinic_rules.get('holiday_dates', []))
     eligible_rdo_days = set(clinic_rules.get('random_day_off', {}).get('eligible_days', []))
     provider_roles = {name: info['role'] for name, info in provider_config.items()}
+    rdo_preference = {name: info.get('rdo_preference') for name, info in provider_config.items()}
 
-    # Convert all holiday/leave/inpatient days to (provider, week) tuples
-    def get_week_key(d): return d.isocalendar()[:2]  # (year, week)
+    def get_week_key(d):
+        return d.isocalendar()[:2]  # (year, week)
 
-    provider_blocked_weeks = defaultdict(set)  
+    provider_blocked_weeks = defaultdict(set)
 
-    # This creates a dictionary of sets of tuples where for each provider (ie., key)
-    # it maps to a set of (year, week) tuples that the provider should not get an RDO
     for _, row in leave_df.iterrows():
         provider_blocked_weeks[row['provider']].add(get_week_key(row['date']))
     for _, row in inpatient_days_df.iterrows():
@@ -115,24 +115,25 @@ def add_rdo_constraints(model,
             if role in ['MD', 'DO']:
                 provider_blocked_weeks[provider].add(week_key)
 
-    # Group all valid calendar days by provider/week
-    calendar_by_week = defaultdict(lambda: defaultdict(list))  # provider → (year, week) → list of dates
-
-    # This creates a dictoinary wehre for each provider it gives (year, week) and days for 
-    # possible RDO (ie., excluding Thursday)
+    # Group eligible calendar days by provider/week
+    calendar_by_week = defaultdict(lambda: defaultdict(list))
     for provider in shift_vars:
         for d in shift_vars[provider]:
             week_key = get_week_key(d)
             if d.strftime('%A') in eligible_rdo_days:
                 calendar_by_week[provider][week_key].append(d)
 
-    # Enforce exactly 1 RDO (i.e., no clinic on one eligible day that week)
     for provider, week_dates in calendar_by_week.items():
+        rdo_pref = rdo_preference.get(provider)
+
         for week_key, dates in week_dates.items():
             if week_key in provider_blocked_weeks[provider]:
-                continue  # skip RDO constraint for this week for that provider 
+                continue  # Skip RDO assignment for blocked weeks
 
-            # For each eligible RDO day that week, sum all clinic sessions
+            # If preference exists, only consider that day
+            if rdo_pref:
+                dates = [d for d in dates if d.strftime('%A') == rdo_pref]
+
             rdo_day_vars = []
             for d in dates:
                 if d in shift_vars[provider]:
@@ -140,8 +141,6 @@ def add_rdo_constraints(model,
                     rdo_day_vars.append(day_sum)
 
             if rdo_day_vars:
-                # Require at least one full RDO day (day_sum == 0)
-                # We'll enforce: Exactly one such day in the week
                 bool_vars = []
                 for s in rdo_day_vars:
                     b = model.NewBoolVar(f'{provider}_is_RDO_day_{week_key}_{s}')
@@ -150,8 +149,6 @@ def add_rdo_constraints(model,
                     bool_vars.append(b)
 
                 model.Add(sum(bool_vars) == 1)
-
-from collections import defaultdict
 
 def add_clinic_count_constraints(model,
                                  shift_vars,
