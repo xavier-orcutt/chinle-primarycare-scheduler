@@ -3,7 +3,6 @@
 # Clinic-level rules 
 clinic_rules:
 
-  # HARD RULES 
   clinic_days:
     - Monday
     - Tuesday
@@ -19,16 +18,7 @@ clinic_rules:
     Friday: [morning, afternoon]
 
   random_day_off:
-    enabled: true
     eligible_days: [Monday, Tuesday, Wednesday, Friday]   # Thursday is excluded
-    substitute_if_holiday: true                           # If there's a holiday that week, skip assigning an RDO
-    substitute_if_leave: true                             # If placed on leave that week, counts as RDO for week 
-    override_roles: [NP, PA]                              # NP/PA still get an RDO even if there’s a holiday that week
-                                              
-  holiday_week_rdo_followup:                              # MD/DO get an RDO the Monday or Friday the week after a holiday 
-    enabled: true
-    day_options: [Monday, Friday]
-    applies_to_roles: [MD, DO]
 
   inpatient_schedule:
     inpatient_length: 7
@@ -38,7 +28,7 @@ clinic_rules:
     post_inpatient_leave: Friday    # RDO after inpatient ends
 
   staffing:
-    min_providers_per_session: 2
+    min_providers_per_session: 1
     max_providers_per_session: 5
 
   holiday_dates:
@@ -54,7 +44,6 @@ clinic_rules:
     - 2025-11-27  # Thanksgiving
     - 2025-12-25  # Christmas
 
-  # SOFT RULES
   clinic_intensity_limit:
     enabled: true
     enforce_ratio_on_short_weeks: true
@@ -72,6 +61,7 @@ providers:
   Miles: 
     role: MD
     max_clinics_per_week: 3
+    rdo_preference: Friday
   
   Orcutt:
     role: MD
@@ -91,4 +81,4 @@ providers:
   
   Wadlin:
     role: MD
-    max_clinics_per_week: 4
+    max_clinics_per_week: 5
