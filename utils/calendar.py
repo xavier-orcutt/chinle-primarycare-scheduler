@@ -9,11 +9,11 @@ def generate_clinic_calendar(start_date, end_date, clinic_rules):
     ----------
     start_date : datetime.date
         The first date to include in the calendar (inclusive). Must be a datetime.date object, 
-        e.g., date(2025, 1, 1).
+        e.g., date(2025, 1, 1), no leading zeros. 
     
     end_date : datetime.date
         The last date to include in the calendar (inclusive). Must be a datetime.date object, 
-        e.g., date(2025, 3, 31).
+        e.g., date(2025, 3, 31), no leading zeros. 
 
     clinic_rules : dict
         A dictionary of clinic-level rules parsed from internal_medicine.yml. It should include:
