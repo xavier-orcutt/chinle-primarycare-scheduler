@@ -1,7 +1,7 @@
 # Chinle Primary Care Scheduler 
 This project is a custom-built tool to help automate and streamline the creation of outpatient clinic schedules for internal medicine, family practice, and pediatrics. It accounts for each provider’s schedule preferences, clinic workload limits, time off, inpatient assignments, and federal holidays.
 
-The goal is to make the scheduling process more transparent, consistent, and timely. Ideally, this tool will allow the entire outpatient schedule to be generated fairly shortly after the inpatient schedule and leave requests are finalized.
+The goal is to make the scheduling process more transparent, consistent, and timely. Ideally, this tool will allow the entire outpatient schedule to be generated shortly after the inpatient schedule and leave requests are finalized.
 
 At this time, only the internal medicine scheduler is active. Versions for family practice and pediatrics are in development.
 
@@ -41,7 +41,8 @@ Solution found.
 A full walkthrough of how the internal medicine schedule was created for August 2025 can be found in `tutorial/tutorial.ipynb`.
 
 ## Directory Architecture
-.
+
+```bash
 ├── engine/                     # Entry point for running the scheduler
 │   └── engine.py
 ├── constraints/                # Scheduling rules and constraint logic
@@ -54,6 +55,7 @@ A full walkthrough of how the internal medicine schedule was created for August 
 └── data/                       # Input data
     ├── inpatient.csv
     └── leave_requests.csv 
+```
 
 ## Requirements
 
