@@ -11,3 +11,4 @@ data/inpatient_july.csv
 data/inpatient_july.xlsx
 data/leave_requests_july.csv
 data/leave_requests_july.xlsx
+tutorial/tutorial_jul.ipynb
