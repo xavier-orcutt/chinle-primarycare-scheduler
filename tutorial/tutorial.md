@@ -1,7 +1,6 @@
 # Chinle Primary Care Scheduler
 **In this notebook, we'll walk through how to make the internal medicine schedule for August 2025.**
 
-
 ```python
 import sys
 from pathlib import Path
@@ -11,7 +10,6 @@ project_root = Path.cwd().parent
 if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 ```
-
 
 ```python
 import pandas as pd
@@ -28,26 +26,18 @@ from constraints.internal_medicine import (
 )
 from ortools.sat.python import cp_model
 ```
-
 **The first step is to import and clean the YML file and CSV files.**
-
 
 ```python
 config, leave_df, inpatient_days_df, inpatient_starts_df = parse_inputs('../config/internal_medicine.yml',
                                                                         '../data/leave_requests.csv',
                                                                         '../data/inpatient.csv')
 ```
-
 **Let's inspect the parsed YML file and CSV files.**
-
 
 ```python
 config['clinic_rules']
 ```
-
-
-
-
     {'clinic_days': ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
      'clinic_sessions': {'Monday': ['morning', 'afternoon'],
       'Tuesday': ['morning', 'afternoon'],
@@ -78,9 +68,6 @@ config['clinic_rules']
      'clinic_intensity_limit': {'enabled': True,
       'enforce_ratio_on_short_weeks': True}}
 
-
-
-
 ```python
 print(leave_df.dtypes)
 leave_df.head(5)
@@ -90,24 +77,6 @@ leave_df.head(5)
     date        datetime64[ns]
     dtype: object
 
-
-
-
-
-<div>
-<style scoped>
-    .dataframe tbody tr th:only-of-type {
-        vertical-align: middle;
-    }
-
-    .dataframe tbody tr th {
-        vertical-align: top;
-    }
-
-    .dataframe thead th {
-        text-align: right;
-    }
-</style>
 <table border="1" class="dataframe">
   <thead>
     <tr style="text-align: right;">
@@ -146,9 +115,6 @@ leave_df.head(5)
 </table>
 </div>
 
-
-
-
 ```python
 print(inpatient_days_df.dtypes)
 inpatient_days_df.head(5)
@@ -158,24 +124,6 @@ inpatient_days_df.head(5)
     date        datetime64[ns]
     dtype: object
 
-
-
-
-
-<div>
-<style scoped>
-    .dataframe tbody tr th:only-of-type {
-        vertical-align: middle;
-    }
-
-    .dataframe tbody tr th {
-        vertical-align: top;
-    }
-
-    .dataframe thead th {
-        text-align: right;
-    }
-</style>
 <table border="1" class="dataframe">
   <thead>
     <tr style="text-align: right;">
@@ -214,9 +162,6 @@ inpatient_days_df.head(5)
 </table>
 </div>
 
-
-
-
 ```python
 print(inpatient_starts_df.dtypes)
 inpatient_starts_df.head(5)
@@ -226,24 +171,6 @@ inpatient_starts_df.head(5)
     start_date    datetime64[ns]
     dtype: object
 
-
-
-
-
-<div>
-<style scoped>
-    .dataframe tbody tr th:only-of-type {
-        vertical-align: middle;
-    }
-
-    .dataframe tbody tr th {
-        vertical-align: top;
-    }
-
-    .dataframe thead th {
-        text-align: right;
-    }
-</style>
 <table border="1" class="dataframe">
   <thead>
     <tr style="text-align: right;">
@@ -272,10 +199,7 @@ inpatient_starts_df.head(5)
 </table>
 </div>
 
-
-
 **The files look well formated and have the correct data types. Let's build our calendar for August 2025. This will only include valid clinic days (ie., not federal holidays) and valid sessions (ie., no Thursday morning).**
-
 
 ```python
 calendar = generate_clinic_calendar(date(2025, 8, 4), 
@@ -283,15 +207,10 @@ calendar = generate_clinic_calendar(date(2025, 8, 4),
                                     config['clinic_rules'])
 ```
 
-
 ```python
 # Here are all the possible clinic sessions that a provider could work in August. 
 calendar
 ```
-
-
-
-
     {datetime.date(2025, 8, 4): ['morning', 'afternoon'],
      datetime.date(2025, 8, 5): ['morning', 'afternoon'],
      datetime.date(2025, 8, 6): ['morning', 'afternoon'],
@@ -313,24 +232,17 @@ calendar
      datetime.date(2025, 8, 28): ['afternoon'],
      datetime.date(2025, 8, 29): ['morning', 'afternoon']}
 
-
-
 **We're ready to instantiate a new instance of the CpModel class from the OR-Tools library. The variable model now holds a specific, usable object that we will shortly add constraints to. We'll also create a dictionary that holds a binary decision variable for each provider for each date, and for each session based on the above August 2025 calendar.**
-
 
 ```python
 model = cp_model.CpModel()
 shift_vars = create_shift_variables(model, list(config['providers'].keys()), calendar)
 ```
 
-
 ```python
 # For each possible clinic session in August 2025, there's a binary decision variable (0 or 1) that will be solved by the model
 shift_vars['Orcutt']
 ```
-
-
-
 
     {datetime.date(2025, 8, 4): {'morning': Orcutt_2025-08-04_morning(0..1),
       'afternoon': Orcutt_2025-08-04_afternoon(0..1)},
@@ -369,15 +281,11 @@ shift_vars['Orcutt']
      datetime.date(2025, 8, 29): {'morning': Orcutt_2025-08-29_morning(0..1),
       'afternoon': Orcutt_2025-08-29_afternoon(0..1)}}
 
-
-
 **Now we add the constraints.**
-
 
 ```python
 objective_terms = []
 ```
-
 
 ```python
 add_leave_constraints(model, shift_vars, leave_df)
@@ -387,11 +295,9 @@ add_rdo_constraints(model, shift_vars, leave_df, inpatient_days_df, config['clin
 add_min_max_staffing_constraints(model, shift_vars, calendar, config['clinic_rules'])
 ```
 
-
 ```python
 objective_terms.extend(add_clinic_count_constraints(model, shift_vars, config['providers'], inpatient_starts_df))
 ```
-
 
 ```python
 if objective_terms:
