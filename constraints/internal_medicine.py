@@ -118,6 +118,19 @@ def add_clinic_count_constraints(model,
     """
     Enforces weekly clinic session targets per provider, based on max_clinics_per_week. 
 
+    Implements a combination of hard and soft constraints:
+    - Hard constraint: Providers cannot exceed their maximum allowed clinics per week
+      (strictly enforced, cannot be violated)
+    - Soft constrint: Providers should achieve their minimum target of clinics per week
+      (enforced with penalties, can be violated if necessary for feasibility)
+    
+    The minimum target is set to be 1 less than the maximum by default to provide flexibility.
+    For post-inpatient weeks, both maximum and minimum targets are reduced by 2 sessions.
+    
+    Soft constraints use penalty variables (range 0-10) with a weight of 100 in the objective
+    function, allowing the solver to find feasible solutions even when perfect solutions
+    don't exist, while strongly discouraging violations.
+
     Parameters:
     ----------
     model : cp_model.CpModel
