@@ -6,7 +6,7 @@ The goal is to make the scheduling process more transparent, consistent, and tim
 At this time, only the internal medicine scheduler is active. Versions for family practice and pediatrics are in development.
 
 ## Problem Overview
-Creating fair and functional clinic schedules is complex. Schedulers must balance many moving parts. This tool treats the task as a constraint-based puzzle, searching for a schedule that satisfies all rules.
+Creating fair and functional clinic schedules is complex. This tool treats the task as a constraint-based puzzle, searching for a schedule that satisfies all pre-defined rules.
 
 While the number of possible schedules is enormous, especially across months and departments, only a small fraction are valid. To solve this efficiently, we use CP-SAT, a powerful open-source solver developed by Google that’s designed for precisely this kind of constraint satisfaction problem.
 
@@ -19,21 +19,20 @@ The scheduler relies on three main inputs:
 
 3. Rules – codified constraints that define how providers can be scheduled
 
-General clinic and provider-specific rules are defined in `config/internal_medicine.yml` file. These include clinic days, maximum clinics per week, RDO preferences, staffing requirements, and more. The rules are imported and codified in `constraints/internal_medicine.py`. For a plain-English summary of the logic, see `docs/internal_medicine_rules.pdf`.
+General clinic and provider-specific rules are defined in `config/internal_medicine.yml` file. These include clinic days, maximum clinics per week, RDO preferences, staffing requirements, and more. The rules are imported and codified in `constraints/internal_medicine.py`. For a plain-English summary of the logic, see `docs/internal_medicine_rules.pdf`. Contraint ordering does not matter to the model. The solver sees the full constraint network and tries to find values that satisfy all the constraints. 
 
 ## Output
 
 With these inputs, The CP-SAT model produces a binary output for each provider, day, and session:
 
-1 = scheduled to work in clinic
-0 = not scheduled (admin, RDO, inpatient, or leave) 
+- 1 = scheduled to work in clinic
+- 0 = not scheduled (admin, RDO, inpatient, or leave) 
 
 ```yaml
-Scheduled shifts:
-Orcutt: 2025-06-02 morning → 1
-Orcutt: 2025-06-02 afternoon → 0
+Solution found in 0.000013 seconds
+2025-08-04 Monday morning: staffed by ['Mccrae', 'Miles', 'Selig']
+2025-08-04 Monday afternoon: staffed by ['Bornstein', 'Mccrae', 'Selig']
 ...
-Solution found.
 ```
 
 ## Usage
