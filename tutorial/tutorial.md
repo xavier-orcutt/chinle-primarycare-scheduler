@@ -1,5 +1,5 @@
 # Chinle Primary Care Scheduler
-**In this notebook, we'll walk through how to make the internal medicine schedule for August 2025.**
+**In this notebook, we'll demonstrate how to create an internal medicine schedule for August 2025.**
 
 ```python
 import sys
@@ -26,14 +26,14 @@ from constraints.internal_medicine import (
 )
 from ortools.sat.python import cp_model
 ```
-**The first step is to import and clean the YML file and CSV files.**
+**First, we'll import and prepare the YML and CSV files for processing.**
 
 ```python
 config, leave_df, inpatient_days_df, inpatient_starts_df = parse_inputs('../config/internal_medicine.yml',
                                                                         '../data/leave_requests.csv',
                                                                         '../data/inpatient.csv')
 ```
-**Let's inspect the parsed YML file and CSV files.**
+**Let's examine the parsed YML and CSV data to ensure everything is properly loaded.**
 
 ```python
 config['clinic_rules']
@@ -199,7 +199,7 @@ inpatient_starts_df.head(5)
 </table>
 </div>
 
-**The files look well formated and have the correct data types. Let's build our calendar for August 2025. This will only include valid clinic days (ie., not federal holidays) and valid sessions (ie., no Thursday morning).**
+**The files are correctly formatted with appropriate data types. Now we'll construct our August 2025 calendar, including only valid clinic days (excluding federal holidays) and available sessions (noting there are no Thursday morning sessions).**
 
 ```python
 calendar = generate_clinic_calendar(date(2025, 8, 4), 
@@ -232,7 +232,7 @@ calendar
      datetime.date(2025, 8, 28): ['afternoon'],
      datetime.date(2025, 8, 29): ['morning', 'afternoon']}
 
-**We're ready to instantiate a new instance of the CpModel class from the OR-Tools library. The variable model now holds a specific, usable object that we will shortly add constraints to. We'll also create a dictionary that holds a binary decision variable for each provider for each date, and for each session based on the above August 2025 calendar.**
+**Next, we'll create a new CpModel instance from the OR-Tools library. This model object will store our scheduling constraints. We'll also generate a dictionary of binary decision variables for each provider, date, and session based on our August 2025 calendar.**
 
 ```python
 model = cp_model.CpModel()
@@ -281,7 +281,7 @@ shift_vars['Orcutt']
      datetime.date(2025, 8, 29): {'morning': Orcutt_2025-08-29_morning(0..1),
       'afternoon': Orcutt_2025-08-29_afternoon(0..1)}}
 
-**Now we add the constraints.**
+**With our model initialized, we'll now add the necessary constraints.**
 
 ```python
 objective_terms = []
@@ -304,7 +304,7 @@ if objective_terms:
     model.Minimize(sum(objective_terms))
 ```
 
-**Finally we solve the model and print the output.**
+**Finally, we'll solve the model and display the resulting schedule.**
 
 
 ```python
@@ -374,4 +374,4 @@ else:
     2025-08-29 Friday afternoon: staffed by ['Bornstein', 'Mccrae', 'Miles']
 
 
-**A clinic schedule for August 2025 was successfully generated that satisfies all constraints. The schedule accommodates approved all leave requests while maintaining a minimum staffing level of 3 providers per session. Each provider receives their appropriate number of clinic sessions per week, with reduced sessions following inpatient service weeks. RDOs were assigned according to provider preferences where possible.**
+**The August 2025 clinic schedule has been successfully generated, satisfying all constraints. The schedule honors all leave requests while maintaining minimum staffing of 3 providers per session. Each provider is assigned their appropriate number of weekly clinic sessions, with reduced sessions following inpatient service weeks. RDOs have been allocated according to provider preferences where possible. Leave has been provided for the Monday prior to and the Friday following inpatient service.**
