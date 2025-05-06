@@ -8,7 +8,7 @@ Currently, only the internal medicine scheduler is active. Versions for family p
 ## Problem Overview
 Creating fair and functional clinic schedules is complex. This tool treats the task as a constraint-based puzzle, searching for a schedule that satisfies all pre-defined rules.
 
-While the number of possible schedules is enormous, especially across months and departments, only a small fraction are valid. To solve this efficiently, we use CP-SAT, a powerful open-source solver developed by Google that’s designed for precisely this kind of constraint satisfaction problem.
+While the number of possible schedules is enormous, especially across months and departments, only a small fraction are valid. To solve this efficiently, we use [CP-SAT](https://developers.google.com/optimization/cp), a powerful open-source solver developed by Google that’s designed for precisely this kind of constraint satisfaction problem.
 
 ## Inputs 
 The scheduler relies on three main inputs:
@@ -31,9 +31,9 @@ With these inputs, The CP-SAT model produces a binary output for each provider, 
 Clinic staffing can be determined by identifying which providers have a value of 1 for each day and session.
 
 ```yaml
-Solution found in 0.000013 seconds
-2025-08-04 Monday morning: staffed by ['Mccrae', 'Miles', 'Selig']
-2025-08-04 Monday afternoon: staffed by ['Bornstein', 'Mccrae', 'Selig']
+Solution found in 0.000014 seconds
+2025-08-04 Monday morning: staffed by ['Mcrae', 'Miles', 'Selig']
+2025-08-04 Monday afternoon: staffed by ['Bornstein', 'Mcrae', 'Miles', 'Selig']
 ...
 ```
 
