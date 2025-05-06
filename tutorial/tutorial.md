@@ -319,10 +319,20 @@ solver_wall_time = solver.wall_time
 
 
 ```python
+from collections import defaultdict
+clinic_rules = config['clinic_rules']
+
 if status in [cp_model.OPTIMAL, cp_model.FEASIBLE]:
     print(f"Solution found in {solver_wall_time/1000:.6f} seconds") # Convert from ms to seconds
+    
+    # Track sessions by provider and week
+    provider_sessions = defaultdict(lambda: defaultdict(int))
+    
+    # Print the schedule and collect session counts
     for day in calendar:
         day_of_week = day.strftime('%A')
+        week_key = (day.year, day.isocalendar()[1])
+        
         for session in calendar[day]:
             scheduled = [
                 provider for provider in shift_vars
@@ -330,7 +340,30 @@ if status in [cp_model.OPTIMAL, cp_model.FEASIBLE]:
                 and session in shift_vars[provider][day]
                 and solver.Value(shift_vars[provider][day][session]) == 1
             ]
+            
+            # Update session counts for each provider
+            for provider in scheduled:
+                provider_sessions[provider][week_key] += 1
+            
             print(f"{day} {day_of_week} {session}: staffed by {scheduled}")
+    
+    # Print session counts per provider per week
+    print("\n=== Provider Weekly Session Counts ===")
+    all_providers = sorted(provider_sessions.keys())
+    all_weeks = sorted(set(week for provider_weeks in provider_sessions.values() 
+                          for week in provider_weeks))
+    
+    # Header row with week numbers
+    header = "Provider    " + "".join(f"Week {week[1]:02d}  " for week in all_weeks)
+    print(header)
+    print("-" * len(header))
+    
+    # Print counts for each provider
+    for provider in all_providers:
+        row = f"{provider:<10} " + "".join(
+            f"{provider_sessions[provider][week]:^10}" for week in all_weeks
+        )
+        print(row)
 else:
     print("No feasible solution found.")
 ```
