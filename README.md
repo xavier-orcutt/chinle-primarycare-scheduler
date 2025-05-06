@@ -1,5 +1,5 @@
 # Chinle Primary Care Scheduler 
-This project is a custom-built tool to help automate and streamline the creation of outpatient clinic schedules for internal medicine, family practice, and pediatrics. It accounts for each provider’s schedule preferences, clinic workload limits, time off, inpatient assignments, and federal holidays.
+This project is a custom-built Python tool to help automate and streamline the creation of outpatient clinic schedules for internal medicine, family practice, and pediatrics. It accounts for each provider’s schedule preferences, clinic workload limits, time off, inpatient assignments, and federal holidays.
 
 The goal is to make the scheduling process more transparent, consistent, and timely. Ideally, this tool will allow the entire outpatient schedule to be generated shortly after the inpatient schedule and leave requests are finalized.
 
