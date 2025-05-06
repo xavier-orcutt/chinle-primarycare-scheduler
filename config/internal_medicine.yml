@@ -28,7 +28,7 @@ clinic_rules:
     post_inpatient_leave: Friday    # RDO after inpatient ends
 
   staffing:
-    min_providers_per_session: 1
+    min_providers_per_session: 3
     max_providers_per_session: 5
 
   holiday_dates:
