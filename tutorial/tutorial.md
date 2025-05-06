@@ -367,55 +367,54 @@ if status in [cp_model.OPTIMAL, cp_model.FEASIBLE]:
 else:
     print("No feasible solution found.")
 ```
+  Solution found in 0.000014 seconds
+  2025-08-04 Monday morning: staffed by ['Mcrae', 'Miles', 'Selig']
+  2025-08-04 Monday afternoon: staffed by ['Bornstein', 'Mcrae', 'Miles', 'Selig']
+  2025-08-05 Tuesday morning: staffed by ['Mcrae', 'Miles', 'Stewart', 'Tanay']
+  2025-08-05 Tuesday afternoon: staffed by ['Mcrae', 'Stewart', 'Tanay']
+  2025-08-06 Wednesday morning: staffed by ['Selig', 'Stewart', 'Tanay']
+  2025-08-06 Wednesday afternoon: staffed by ['Bornstein', 'Selig', 'Tanay']
+  2025-08-07 Thursday afternoon: staffed by ['Mcrae', 'Selig', 'Tanay']
+  2025-08-08 Friday morning: staffed by ['Bornstein', 'Stewart', 'Tanay']
+  2025-08-08 Friday afternoon: staffed by ['Bornstein', 'Mcrae', 'Selig']
+  2025-08-11 Monday morning: staffed by ['Bornstein', 'Miles', 'Selig']
+  2025-08-11 Monday afternoon: staffed by ['Bornstein', 'Miles', 'Selig']
+  2025-08-12 Tuesday morning: staffed by ['Miles', 'Stewart', 'Tanay', 'Wadlin']
+  2025-08-12 Tuesday afternoon: staffed by ['Stewart', 'Tanay', 'Wadlin']
+  2025-08-13 Wednesday morning: staffed by ['Mcrae', 'Selig', 'Stewart', 'Tanay', 'Wadlin']
+  2025-08-13 Wednesday afternoon: staffed by ['Mcrae', 'Selig', 'Tanay', 'Wadlin']
+  2025-08-14 Thursday afternoon: staffed by ['Mcrae', 'Selig', 'Tanay']
+  2025-08-15 Friday morning: staffed by ['Mcrae', 'Tanay', 'Wadlin']
+  2025-08-15 Friday afternoon: staffed by ['Mcrae', 'Selig', 'Stewart']
+  2025-08-18 Monday morning: staffed by ['Mcrae', 'Selig', 'Wadlin']
+  2025-08-18 Monday afternoon: staffed by ['Mcrae', 'Selig', 'Wadlin']
+  2025-08-19 Tuesday morning: staffed by ['Bornstein', 'Stewart', 'Tanay', 'Wadlin']
+  2025-08-19 Tuesday afternoon: staffed by ['Bornstein', 'Stewart', 'Tanay', 'Wadlin']
+  2025-08-20 Wednesday morning: staffed by ['Mcrae', 'Selig', 'Stewart', 'Tanay', 'Wadlin']
+  2025-08-20 Wednesday afternoon: staffed by ['Mcrae', 'Selig', 'Tanay']
+  2025-08-21 Thursday afternoon: staffed by ['Bornstein', 'Selig', 'Tanay']
+  2025-08-22 Friday morning: staffed by ['Mcrae', 'Stewart', 'Tanay']
+  2025-08-22 Friday afternoon: staffed by ['Bornstein', 'Mcrae', 'Selig']
+  2025-08-25 Monday morning: staffed by ['Mcrae', 'Miles', 'Wadlin']
+  2025-08-25 Monday afternoon: staffed by ['Mcrae', 'Miles', 'Wadlin']
+  2025-08-26 Tuesday morning: staffed by ['Bornstein', 'Selig', 'Stewart', 'Tanay', 'Wadlin']
+  2025-08-26 Tuesday afternoon: staffed by ['Selig', 'Stewart', 'Tanay']
+  2025-08-27 Wednesday morning: staffed by ['Bornstein', 'Mcrae', 'Selig', 'Stewart', 'Tanay']
+  2025-08-27 Wednesday afternoon: staffed by ['Mcrae', 'Selig', 'Tanay']
+  2025-08-28 Thursday afternoon: staffed by ['Mcrae', 'Selig', 'Tanay']
+  2025-08-29 Friday morning: staffed by ['Bornstein', 'Selig', 'Stewart', 'Tanay']
+  2025-08-29 Friday afternoon: staffed by ['Bornstein', 'Mcrae', 'Miles']
 
-    Solution found in 0.000015 seconds
-    2025-08-04 Monday morning: staffed by ['Mccrae', 'Miles', 'Selig']
-    2025-08-04 Monday afternoon: staffed by ['Bornstein', 'Mccrae', 'Selig']
-    2025-08-05 Tuesday morning: staffed by ['Mccrae', 'Stewart', 'Tanay']
-    2025-08-05 Tuesday afternoon: staffed by ['Mccrae', 'Miles', 'Tanay']
-    2025-08-06 Wednesday morning: staffed by ['Selig', 'Stewart', 'Tanay']
-    2025-08-06 Wednesday afternoon: staffed by ['Miles', 'Selig', 'Tanay']
-    2025-08-07 Thursday afternoon: staffed by ['Bornstein', 'Selig', 'Tanay']
-    2025-08-08 Friday morning: staffed by ['Bornstein', 'Mccrae', 'Stewart']
-    2025-08-08 Friday afternoon: staffed by ['Bornstein', 'Mccrae', 'Selig']
-    2025-08-11 Monday morning: staffed by ['Bornstein', 'Miles', 'Selig']
-    2025-08-11 Monday afternoon: staffed by ['Bornstein', 'Miles', 'Selig']
-    2025-08-12 Tuesday morning: staffed by ['Stewart', 'Tanay', 'Wadlin']
-    2025-08-12 Tuesday afternoon: staffed by ['Stewart', 'Tanay', 'Wadlin']
-    2025-08-13 Wednesday morning: staffed by ['Mccrae', 'Stewart', 'Tanay', 'Wadlin']
-    2025-08-13 Wednesday afternoon: staffed by ['Mccrae', 'Selig', 'Tanay']
-    2025-08-14 Thursday afternoon: staffed by ['Mccrae', 'Miles', 'Selig']
-    2025-08-15 Friday morning: staffed by ['Mccrae', 'Tanay', 'Wadlin']
-    2025-08-15 Friday afternoon: staffed by ['Mccrae', 'Selig', 'Stewart']
-    2025-08-18 Monday morning: staffed by ['Mccrae', 'Selig', 'Wadlin']
-    2025-08-18 Monday afternoon: staffed by ['Mccrae', 'Selig', 'Wadlin']
-    2025-08-19 Tuesday morning: staffed by ['Stewart', 'Tanay', 'Wadlin']
-    2025-08-19 Tuesday afternoon: staffed by ['Bornstein', 'Tanay', 'Wadlin']
-    2025-08-20 Wednesday morning: staffed by ['Selig', 'Stewart', 'Tanay']
-    2025-08-20 Wednesday afternoon: staffed by ['Bornstein', 'Mccrae', 'Tanay']
-    2025-08-21 Thursday afternoon: staffed by ['Bornstein', 'Mccrae', 'Selig']
-    2025-08-22 Friday morning: staffed by ['Mccrae', 'Stewart', 'Tanay']
-    2025-08-22 Friday afternoon: staffed by ['Bornstein', 'Mccrae', 'Selig']
-    2025-08-25 Monday morning: staffed by ['Mccrae', 'Miles', 'Wadlin']
-    2025-08-25 Monday afternoon: staffed by ['Mccrae', 'Miles', 'Wadlin']
-    2025-08-26 Tuesday morning: staffed by ['Selig', 'Stewart', 'Tanay']
-    2025-08-26 Tuesday afternoon: staffed by ['Bornstein', 'Selig', 'Tanay']
-    2025-08-27 Wednesday morning: staffed by ['Selig', 'Stewart', 'Tanay']
-    2025-08-27 Wednesday afternoon: staffed by ['Bornstein', 'Mccrae', 'Tanay']
-    2025-08-28 Thursday afternoon: staffed by ['Bornstein', 'Mccrae', 'Selig']
-    2025-08-29 Friday morning: staffed by ['Selig', 'Stewart', 'Tanay']
-    2025-08-29 Friday afternoon: staffed by ['Bornstein', 'Mccrae', 'Miles']
+  === Provider Weekly Session Counts ===
+  Provider    Week 32  Week 33  Week 34  Week 35  
+  ------------------------------------------------
+  Bornstein      4         2         4         4     
+  Mcrae          6         5         6         6     
+  Miles          3         3         0         3     
+  Orcutt         0         0         0         0     
+  Selig          6         6         6         6     
+  Stewart        4         4         4         4     
+  Tanay          6         6         6         6     
+  Wadlin         0         5         5         3     
 
-    === Provider Weekly Session Counts ===
-    Provider    Week 32  Week 33  Week 34  Week 35  
-    ------------------------------------------------
-    Bornstein      4         2         4         4     
-    Mccrae         6         5         6         5     
-    Miles          3         3         0         3     
-    Orcutt         0         0         0         0     
-    Selig          6         5         5         5     
-    Stewart        3         4         3         3     
-    Tanay          5         5         5         5     
-    Wadlin         0         4         4         2   
-
-**The August 2025 clinic schedule has been successfully generated, satisfying all constraints. The schedule honors all leave requests while maintaining minimum staffing of 3 providers per session. Each provider is assigned roughly their appropriate number of weekly clinic sessions, with reduced sessions following inpatient service weeks. RDOs have been allocated according to provider preferences where possible. Leave has been provided for the Monday prior to and the Friday following inpatient service.**
+**The August 2025 clinic schedule has been successfully generated, satisfying all constraints. The schedule honors all leave requests while maintaining minimum staffing of 3 providers and maximum staffing of 5 providers per session. Each provider is assigned roughly their appropriate number of weekly clinic sessions, with reduced sessions following inpatient service weeks. RDOs have been allocated according to provider preferences where possible. Leave has been provided for the Monday prior to and the Friday following inpatient service.**
