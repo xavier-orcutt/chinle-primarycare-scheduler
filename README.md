@@ -28,6 +28,8 @@ With these inputs, The CP-SAT model produces a binary output for each provider, 
 - 1 = scheduled to work in clinic
 - 0 = not scheduled (admin, RDO, inpatient, or leave) 
 
+Clinic staffing can be determined by identifying which providers have a value of 1 for each day and session.
+
 ```yaml
 Solution found in 0.000013 seconds
 2025-08-04 Monday morning: staffed by ['Mccrae', 'Miles', 'Selig']
