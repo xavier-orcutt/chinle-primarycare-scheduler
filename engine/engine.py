@@ -7,7 +7,8 @@ from constraints.internal_medicine import (
     add_leave_constraints,
     add_rdo_constraints,
     add_clinic_count_constraints,
-    add_min_max_staffing_constraints
+    add_min_max_staffing_constraints,
+    add_inpatient_block_constraints
 )
 from ortools.sat.python import cp_model
 
@@ -24,10 +25,11 @@ model = cp_model.CpModel()
 shift_vars = create_shift_variables(model, list(config['providers'].keys()), calendar)
 
 # Add constraints 
-add_clinic_count_constraints(model, shift_vars, config['providers'], calendar, leave_df, inpatient_starts_df, inpatient_days_df, config['clinic_rules'])
 add_leave_constraints(model, shift_vars, leave_df)
-add_min_max_staffing_constraints(model, shift_vars, calendar, config['clinic_rules'])
+add_inpatient_block_constraints(model, shift_vars, inpatient_starts_df, inpatient_days_df)
+add_clinic_count_constraints(model, shift_vars, config['providers'], inpatient_starts_df)
 add_rdo_constraints(model, shift_vars, leave_df, inpatient_days_df, config['clinic_rules'], config['providers'])
+add_min_max_staffing_constraints(model, shift_vars, calendar, config['clinic_rules'])
 
 # Solve model
 solver = cp_model.CpSolver()
