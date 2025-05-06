@@ -3,7 +3,7 @@ This project is a custom-built tool to help automate and streamline the creation
 
 The goal is to make the scheduling process more transparent, consistent, and timely. Ideally, this tool will allow the entire outpatient schedule to be generated shortly after the inpatient schedule and leave requests are finalized.
 
-At this time, only the internal medicine scheduler is active. Versions for family practice and pediatrics are in development.
+Currently, only the internal medicine scheduler is active. Versions for family practice and pediatrics are in development.
 
 ## Problem Overview
 Creating fair and functional clinic schedules is complex. This tool treats the task as a constraint-based puzzle, searching for a schedule that satisfies all pre-defined rules.
@@ -37,7 +37,7 @@ Solution found in 0.000013 seconds
 
 ## Usage
 
-A full walkthrough of how the internal medicine schedule was created for August 2025 can be found in `tutorial/tutorial.ipynb`.
+A full walkthrough of how the internal medicine schedule was created for August 2025 can be found in `tutorial/tutorial.html`.
 
 ## Directory Architecture
 
