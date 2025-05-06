@@ -64,7 +64,7 @@ def load_inpatient(inpatient_csv_path, provider_list, length):
         - inpatient_starts_df: DataFrame with original inpatient start dates
     """
     df = pd.read_csv(Path(inpatient_csv_path))
-    df['start_date'] = pd.to_datetime(df['start_date']).dt.date
+    df['start_date'] = pd.to_datetime(df['start_date'])
 
     # Filter to only providers in department
     df = df[df['provider'].isin(provider_list)].copy()
