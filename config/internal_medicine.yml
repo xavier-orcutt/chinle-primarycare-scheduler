@@ -54,7 +54,7 @@ providers:
     role: MD
     max_clinics_per_week: 4 
   
-  Mccrae:
+  Mcrae:
     role: PA
     max_clinics_per_week: 6
 
