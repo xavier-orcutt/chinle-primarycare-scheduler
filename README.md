@@ -19,7 +19,7 @@ The scheduler relies on three main inputs:
 
 3. Rules – codified constraints that define how providers can be scheduled
 
-General clinic and provider-specific rules are defined in `config/internal_medicine.yml` file. These include clinic days, maximum clinics per week, RDO preferences, staffing requirements, and more. The rules are imported and codified in `constraints/internal_medicine.py`. For a plain-English summary of the logic, see `docs/internal_medicine_rules.pdf`. Contraint ordering does not matter to the model. The solver sees the full constraint network and tries to find values that satisfy all the constraints. 
+General clinic and provider-specific rules are defined in `config/internal_medicine.yml` file. These include clinic days, maximum clinics per week, RDO preferences, staffing requirements, and more. The rules are imported and codified in `constraints/internal_medicine.py`. For a plain-English summary of the logic, see `docs/internal_medicine_rules.pdf`. 
 
 ## Output
 
