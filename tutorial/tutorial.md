@@ -349,7 +349,7 @@ if status in [cp_model.OPTIMAL, cp_model.FEASIBLE]:
     
     # Print session counts per provider per week
     print("\n=== Provider Weekly Session Counts ===")
-    all_providers = sorted(provider_sessions.keys())
+    all_providers = list(config['providers'])
     all_weeks = sorted(set(week for provider_weeks in provider_sessions.values() 
                           for week in provider_weeks))
     
@@ -412,9 +412,10 @@ else:
     Bornstein      4         2         4         4     
     Mccrae         6         5         6         5     
     Miles          3         3         0         3     
+    Orcutt         0         0         0         0     
     Selig          6         5         5         5     
     Stewart        3         4         3         3     
     Tanay          5         5         5         5     
-    Wadlin         0         4         4         2     
+    Wadlin         0         4         4         2   
 
 **The August 2025 clinic schedule has been successfully generated, satisfying all constraints. The schedule honors all leave requests while maintaining minimum staffing of 3 providers per session. Each provider is assigned roughly their appropriate number of weekly clinic sessions, with reduced sessions following inpatient service weeks. RDOs have been allocated according to provider preferences where possible. Leave has been provided for the Monday prior to and the Friday following inpatient service.**
