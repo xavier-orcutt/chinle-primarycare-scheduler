@@ -75,7 +75,7 @@ leave_df.head(5)
 
     provider            object
     date        datetime64[ns]
-    dtype: object
+    dtype:              object
 
 <table border="1" class="dataframe">
   <thead>
@@ -122,7 +122,7 @@ inpatient_days_df.head(5)
 
     provider            object
     date        datetime64[ns]
-    dtype: object
+    dtype:              object
 
 <table border="1" class="dataframe">
   <thead>
@@ -169,7 +169,7 @@ inpatient_starts_df.head(5)
 
     provider              object
     start_date    datetime64[ns]
-    dtype: object
+    dtype:                object
 
 <table border="1" class="dataframe">
   <thead>
