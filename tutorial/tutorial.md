@@ -373,5 +373,15 @@ else:
     2025-08-29 Friday morning: staffed by ['Selig', 'Stewart', 'Tanay']
     2025-08-29 Friday afternoon: staffed by ['Bornstein', 'Mccrae', 'Miles']
 
+    === Provider Weekly Session Counts ===
+    Provider    Week 32  Week 33  Week 34  Week 35  
+    ------------------------------------------------
+    Bornstein      4         2         4         4     
+    Mccrae         6         5         6         5     
+    Miles          3         3         0         3     
+    Selig          6         5         5         5     
+    Stewart        3         4         3         3     
+    Tanay          5         5         5         5     
+    Wadlin         0         4         4         2     
 
 **The August 2025 clinic schedule has been successfully generated, satisfying all constraints. The schedule honors all leave requests while maintaining minimum staffing of 3 providers per session. Each provider is assigned their appropriate number of weekly clinic sessions, with reduced sessions following inpatient service weeks. RDOs have been allocated according to provider preferences where possible. Leave has been provided for the Monday prior to and the Friday following inpatient service.**
