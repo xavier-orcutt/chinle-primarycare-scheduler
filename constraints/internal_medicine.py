@@ -124,7 +124,8 @@ def add_clinic_count_constraints(model,
     - Soft constrint: Providers should achieve their minimum target of clinics per week
       (enforced with penalties, can be violated if necessary for feasibility)
     
-    The minimum target is set to be 1 less than the maximum by default to provide flexibility.
+    The minimum target is the same as the maximum by default to provide flexibility. For additional
+    flexibility, make minimum target 1 less than maximum target.
     For post-inpatient weeks, both maximum and minimum targets are reduced by 2 sessions.
     
     Soft constraints use penalty variables (range 0-10) with a weight of 100 in the objective
@@ -183,7 +184,8 @@ def add_clinic_count_constraints(model,
             model.Add(sum(var_list) <= target_max_clinics)
             
             # Min constraint becomes soft with penalty
-            target_min_clinics = max(1, target_max_clinics - 1)  # Allow some flexibility
+            target_min_clinics = max(1, target_max_clinics)
+            #target_min_clinics = max(1, target_max_clinics - 1) for more flexibility   
             
             # Create penalty variable for under-minimum
             under_min = model.NewIntVar(0, 10, f"under_min_{provider}_{week_key}")
