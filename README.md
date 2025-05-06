@@ -37,7 +37,7 @@ Solution found in 0.000013 seconds
 
 ## Usage
 
-A full walkthrough of how the internal medicine schedule was created for August 2025 can be found in `tutorial/tutorial.html`.
+A full walkthrough of how the internal medicine schedule was created for August 2025 can be found in `tutorial/tutorial.md`.
 
 ## Directory Architecture
 
