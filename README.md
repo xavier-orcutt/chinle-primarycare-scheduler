@@ -6,7 +6,7 @@ The goal is to make the scheduling process more transparent, consistent, and tim
 Currently, only the internal medicine scheduler is active. Versions for family practice and pediatrics are in development.
 
 ## Problem Overview
-Creating fair and functional clinic schedules is complex. This tool treats the task as a constraint-based puzzle, searching for a schedule that satisfies all pre-defined rules.
+Creating fair and functional clinic schedules is complex. This tool treats the task as a constraint-based puzzle, searching for a schedule that satisfies all pre-defined rules. 
 
 While the number of possible schedules is enormous, especially across months and departments, only a small fraction are valid. To solve this efficiently, we use [CP-SAT](https://developers.google.com/optimization/cp), a powerful open-source solver developed by Google that’s designed for precisely this kind of constraint satisfaction problem.
 
@@ -19,7 +19,17 @@ The scheduler relies on three main inputs:
 
 3. Rules – codified constraints that define how providers can be scheduled
 
-General clinic and provider-specific rules are defined in `config/internal_medicine.yml` file. These include clinic days, maximum clinics per week, RDO preferences, staffing requirements, and more. The rules are imported and codified in `constraints/internal_medicine.py`. For a plain-English summary of the logic, see `docs/internal_medicine_rules.pdf`. 
+### Rules
+
+The rules section deserves particular attention as it's the heart of the scheduling system and requires transparency and community buy-in. Defining these rules collaboratively ensures the resulting schedules reflect shared priorities and are perceived as fair by all providers. The scheduler enforces the core rules as defined in the `docs/core_scheduling_rules.pdf`. 
+
+General clinic and provider-specific rules are defined in the `config/internal_medicine.yml` file and are imported and codified as constraints for the model in `constraints/internal_medicine.py`.
+
+The constraints are implemented as a combination of:
+* Hard constraints that cannot be violated (e.g., providers cannot work clinic during inpatient)
+* Soft constraints with penalties that guide the optimizer toward preferable solutions while maintaining flexibility when strict adherence isn't possible (e.g., ensuring that providers work as close as possible to their designated weekly clinic amount)
+
+This balanced approach ensures the scheduler can find workable solutions even when competing requirements make perfect solutions impossible.
 
 ## Output
 
@@ -44,18 +54,20 @@ A full walkthrough of how the internal medicine schedule was created for August 
 ## Directory Architecture
 
 ```bash
-├── engine/                     # Entry point for running the scheduler
+├── engine/                        # Entry point for running the scheduler
 │   └── engine.py
-├── constraints/                # Scheduling rules and constraint logic
+├── constraints/                   # Scheduling rules and constraint logic
 │   └── internal_medicine.py
-├── utils/                      # Input parsing and calendar creation
+├── utils/                         # Input parsing and calendar creation
 │   ├── parser.py
 │   └── calendar.py
-├── config/                     # Clinic and provider rules 
+├── config/                        # Clinic and provider rules 
 │   └── internal_medicine.yml
-└── data/                       # Input data
+├── docs/                       
+│   └── core_scheduling_rules.pdf  # Plain-English summary of scheduling rules
+└── data/                          # Input data
     ├── inpatient.csv
-    └── leave_requests.csv 
+    └── leave_requests.csv
 ```
 
 ## Requirements
