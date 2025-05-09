@@ -21,7 +21,7 @@ The scheduler relies on three main inputs:
 
 ### Rules
 
-The rules section deserves particular attention as it's the heart of the scheduling system and requires transparency and community buy-in. Defining these rules collaboratively ensures the resulting schedules reflect shared priorities and are perceived as fair by all providers. The scheduler enforces the core rules as defined in the `docs/core_scheduling_rules.pdf`. 
+The rules section deserves particular attention as it's the heart of the scheduling system and requires transparency and community buy-in. The scheduler enforces the core rules as defined in the `docs/core_scheduling_rules.pdf`. 
 
 General clinic and provider-specific rules are defined in the `config/internal_medicine.yml` file and are imported and codified as constraints for the model in `constraints/internal_medicine.py`.
 
