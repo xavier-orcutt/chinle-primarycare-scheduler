@@ -21,7 +21,7 @@ The scheduler relies on three main inputs:
 
 ### Rules
 
-The rules section deserves particular attention as it's the heart of the scheduling system and requires transparency and community buy-in. The scheduler enforces the core rules as defined in the `docs/core_scheduling_rules.pdf`. 
+The rules section deserves particular attention as it's the heart of the scheduling system and requires transparency and community buy-in. The scheduler enforces the core rules as defined in the `docs/scheduler_rules.pdf`. 
 
 General clinic and provider-specific rules are defined in the `config/internal_medicine.yml` file and are imported and codified as constraints for the model in `constraints/internal_medicine.py`.
 
@@ -64,7 +64,7 @@ A full walkthrough of how the internal medicine schedule was created for August 
 ├── config/                        # Clinic and provider rules 
 │   └── internal_medicine.yml
 ├── docs/                       
-│   └── core_scheduling_rules.pdf  # Plain-English summary of scheduling rules
+│   └── scheduler_rules.pdf        # Plain-English summary of scheduling rules
 └── data/                          # Input data
     ├── inpatient.csv
     └── leave_requests.csv
