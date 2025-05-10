@@ -1,0 +1,90 @@
+# Pediatric rules
+
+# Clinic-level rules 
+clinic_rules:
+
+  clinic_days:
+    - Monday
+    - Tuesday
+    - Wednesday
+    - Thursday
+    - Friday
+
+  clinic_sessions:
+    Monday: [morning, afternoon]
+    Tuesday: [morning, afternoon]
+    Wednesday: [morning, afternoon]
+    Thursday: [afternoon]  
+    Friday: [morning, afternoon]
+
+  random_day_off:
+    eligible_days: [Monday, Tuesday, Wednesday, Friday]   # Thursday is excluded
+
+  call_days:
+    - Sunday
+    - Monday
+    - Tuesday
+    - Wednesday
+    - Thursday 
+
+  inpatient_schedule:
+    inpatient_length: 7
+    inpatient_starts_on: Tuesday
+    inpatient_ends_on: Monday
+    pre_inpatient_leave: Monday     # RDO the day before inpatient starts
+    post_inpatient_leave: Friday    # RDO after inpatient ends
+
+  staffing:
+    min_providers_per_session: 3
+    max_providers_per_session: 5
+
+  holiday_dates:
+    - 2025-01-01  # New Year's Day
+    - 2025-01-20  # MLK Day
+    - 2025-02-17  # Presidents' Day
+    - 2025-05-26  # Memorial Day
+    - 2025-06-19  # Juneteenth
+    - 2025-07-04  # Independence Day
+    - 2025-09-01  # Labor Day
+    - 2025-10-13  # Indigenous Peoples' Day
+    - 2025-11-11  # Veterans Day
+    - 2025-11-27  # Thanksgiving
+    - 2025-12-25  # Christmas
+
+# Provider-level rules 
+providers:
+  Bedelle:
+    role: MD
+    max_clinics_per_week: 6
+  
+  Carrasco:
+    role: MD
+    max_clinics_per_week: 6
+
+  Mador: 
+    role: MD
+    max_clinics_per_week: 6
+  
+  Menachoff:
+    role: MD
+    max_clinics_per_week: 3
+
+  Miller:
+    role: MD
+    max_clinics_per_week: 6
+
+  Powell:
+    role: MD
+    max_clinics_per_week: 0   # Family doctor who takes call but does clinics in family practice
+
+  Shin: 
+    role: MD
+    max_clinics_per_week: 2 
+  
+  Tarr:
+    role: MD
+    max_clinics_per_week: 6
+  
+  Vaish: 
+    role: MD
+    max_clinics_per_week: 6
