@@ -44,10 +44,6 @@ clinic_rules:
     - 2025-11-27  # Thanksgiving
     - 2025-12-25  # Christmas
 
-  clinic_intensity_limit:
-    enabled: true
-    enforce_ratio_on_short_weeks: true
-
 # Provider-level rules 
 providers:
   Bornstein:
