@@ -52,3 +52,81 @@ def generate_clinic_calendar(start_date, end_date, clinic_rules):
         current += timedelta(days = 1)
 
     return calendar
+
+def generate_pediatric_calendar(start_date, end_date, clinic_rules):
+    """
+    Generates a dictionary mapping each valid clinic date to its allowed clinic sessions 
+    and call sessions based on pediatric clinic rules.
+
+    Parameters:
+    ----------
+    start_date : datetime.date
+        The first date to include in the calendar (inclusive). Must be a datetime.date object, 
+        e.g., date(2025, 1, 1), no leading zeros. 
+    
+    end_date : datetime.date
+        The last date to include in the calendar (inclusive). Must be a datetime.date object, 
+        e.g., date(2025, 3, 31), no leading zeros. 
+
+    clinic_rules : dict
+        A dictionary of clinic-level rules parsed from pediatrics.yml. It should include:
+            - 'clinic_days': list of weekdays to allow clinic scheduling (e.g., ["Monday", "Tuesday", ...])
+            - 'clinic_sessions': dict mapping weekdays to allowed clinic sessions (e.g., {"Monday": ["morning", "afternoon"]})
+            - 'call_days' : list of days to allow call (e.g., ["Sunday", "Monday", ...])
+            - 'holiday_dates': list of datetime.date objects to skip scheduling (optional)
+
+    Returns:
+    -------
+    dict
+        A dictionary where keys are datetime.date objects and values are lists of valid sessions 
+        (e.g., ["morning", "afternoon", "call"]) for that date. 
+ 
+    """
+    if not isinstance(start_date, date) or not isinstance(end_date, date):
+        raise TypeError("start_date and end_date must be datetime.date objects")
+    if start_date > end_date:
+        raise ValueError("start_date must be on or before end_date")
+    
+    try:
+        clinic_days = clinic_rules['clinic_days']
+        clinic_sessions = clinic_rules['clinic_sessions']
+        call_days = clinic_rules['call_days']
+    except KeyError as e:
+        raise KeyError(f"Missing required key in clinic_rules: {e}")
+    
+    # Get holiday dates and calculate days before holidays
+    holiday_dates = set(clinic_rules.get('holiday_dates', []))
+    days_before_holiday = set(holiday - timedelta(days = 1) for holiday in holiday_dates)
+
+    calendar = {}
+    current = start_date
+    while current <= end_date:
+        weekday = current.strftime('%A')  # e.g., "Monday"
+        sessions = []
+
+        # Skip holidays completely
+        if current in holiday_dates:
+            current += timedelta(days=1)
+            continue
+
+        # Handle day before holiday - only include clinic sessions, no call
+        elif current in days_before_holiday:
+            if weekday in clinic_days:
+                 sessions = clinic_sessions.get(weekday, [])
+                 if sessions:
+                    calendar[current] = sessions
+
+        # If not holiday or day before holiday, add clinic sessions and call  
+        else:
+            sessions = []
+            if weekday in clinic_days:
+                sessions.extend(clinic_sessions.get(weekday, []))
+            if weekday in call_days:
+                sessions.append('call')
+            if sessions:
+                calendar[current] = sessions
+        
+        # Increment the date once per loop iteration
+        current += timedelta(days=1)
+
+    return calendar
