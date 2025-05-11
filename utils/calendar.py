@@ -80,7 +80,6 @@ def generate_pediatric_calendar(start_date, end_date, clinic_rules):
     dict
         A dictionary where keys are datetime.date objects and values are lists of valid sessions 
         (e.g., ["morning", "afternoon", "call"]) for that date. 
- 
     """
     if not isinstance(start_date, date) or not isinstance(end_date, date):
         raise TypeError("start_date and end_date must be datetime.date objects")
@@ -94,37 +93,32 @@ def generate_pediatric_calendar(start_date, end_date, clinic_rules):
     except KeyError as e:
         raise KeyError(f"Missing required key in clinic_rules: {e}")
     
-    # Get holiday dates and calculate days before holidays
+    # Get holiday dates
     holiday_dates = set(clinic_rules.get('holiday_dates', []))
-    days_before_holiday = set(holiday - timedelta(days = 1) for holiday in holiday_dates)
-
+    
     calendar = {}
     current = start_date
     while current <= end_date:
         weekday = current.strftime('%A')  # e.g., "Monday"
-        sessions = []
-
-        # Skip holidays completely
+        
+        # Skip holidays completely (no clinic, no call)
         if current in holiday_dates:
             current += timedelta(days=1)
             continue
 
-        # Handle day before holiday - only include clinic sessions, no call
-        elif current in days_before_holiday:
-            if weekday in clinic_days:
-                 sessions = clinic_sessions.get(weekday, [])
-                 if sessions:
-                    calendar[current] = sessions
-
-        # If not holiday or day before holiday, add clinic sessions and call  
-        else:
-            sessions = []
-            if weekday in clinic_days:
-                sessions.extend(clinic_sessions.get(weekday, []))
-            if weekday in call_days:
-                sessions.append('call')
-            if sessions:
-                calendar[current] = sessions
+        sessions = []
+        
+        # Add clinic sessions if this is a clinic day
+        if weekday in clinic_days:
+            sessions.extend(clinic_sessions.get(weekday, []))
+        
+        # Add call sessions if this is a call day AND not in our no-call dates
+        if weekday in call_days:
+            sessions.append('call')
+        
+        # Add date to calendar if it has any sessions
+        if sessions:
+            calendar[current] = sessions
         
         # Increment the date once per loop iteration
         current += timedelta(days=1)
