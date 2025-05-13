@@ -37,9 +37,17 @@ def load_leave_requests(leave_requests_csv_path, provider_list):
     Returns:
     -------
     pd.DataFrame
-        Filtered leave request data with columns ['provider', 'date', 'rank'].
+        Filtered leave request data with columns ['provider', 'date'].
     """
     df = pd.read_csv(Path(leave_requests_csv_path))
+
+    # Validate required columns
+    required_columns = ['provider', 'date']
+    missing_columns = [col for col in required_columns if col not in df.columns]
+    
+    if missing_columns:
+        raise ValueError(f"Leave CSV file missing required column(s): {', '.join(missing_columns)}")
+
     df['date'] = pd.to_datetime(df['date'])
     df = df[df['provider'].isin(provider_list)].copy()
     return df
@@ -64,6 +72,14 @@ def load_inpatient(inpatient_csv_path, provider_list, length):
         - inpatient_starts_df: DataFrame with original inpatient start dates
     """
     df = pd.read_csv(Path(inpatient_csv_path))
+
+    # Validate required columns
+    required_columns = ['provider', 'start_date']
+    missing_columns = [col for col in required_columns if col not in df.columns]
+    
+    if missing_columns:
+        raise ValueError(f"Inpatient CSV file missing required column(s): {', '.join(missing_columns)}")
+
     df['start_date'] = pd.to_datetime(df['start_date'])
 
     # Filter to only providers in department
