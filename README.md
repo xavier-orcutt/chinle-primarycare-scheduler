@@ -58,37 +58,37 @@ This binary decision matrix is then translated into user-friendly outputs which 
 ### Schedule Dataframe
 The primary output is the complete schedule showing which providers are assigned to each session:
 
-```bash
-date	    day_of_week   session	    providers	   count
-2025-08-04	Monday	      morning	    House,Watson   2
-2025-08-04	Monday	      afternoon	    House,Watson   2        
+```python
+date	      day_of_week   session	    providers	   count
+'2025-08-04'  Monday        morning	    House,Watson   2
+'2025-08-04'  Monday        afternoon	    House,Watson   2        
 ```
 
 ### Provider Summary Dataframe
 A summary of each provider's workload is also generated:
 
-```bash
+```python
 provider	week_32	week_33	week_34	week_35	total_sessions
 Spaceman	0	    2	    4	    4	    10
-House	    6	    5	    6	    6	    23
+House       6	    5	    6	    6	    23
 Watson   	3	    3	    0	    0	    6
 ```
 
 ### Solution Status 
 Detailed information about the scheduling process and solution quality:
 
-```bash
+```python
 {'Status': 'OPTIMAL',
  'Minimum providers per session': 2,
  'Objective value': 4100.0,
- 'Solve time': '0.022486 seconds',
+ 'Solve time': 0.022486 seconds,
  'Branches': 640,
  'Conflicts': 0}
  ```
- 
+
 When the scheduler completes, it categorizes the solution as either:
-* OPTIMAL: The scheduler has proven this is the best possible solution given the constraints.
-* FEASIBLE: The scheduler found a valid solution that satisfies all hard constraints but couldn't prove it's optimal within the time limit, which is currently set to 5 minutes.
+* **OPTIMAL**: The scheduler has proven this is the best possible solution given the constraints.
+* **FEASIBLE**: The scheduler found a valid solution that satisfies all hard constraints but couldn't prove it's optimal within the time limit, which is currently set to 5 minutes.
 
 Both solution types are valid and usable for implementation, though optimal solutions guarantee no better alternative exists.
 
