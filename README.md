@@ -17,12 +17,11 @@ The real complexity, however, doesn’t lie in the sheer number of possible sche
 To solve this efficiently, we use [CP-SAT](https://developers.google.com/optimization/cp), an open-source solver developed by Google that’s designed for precisely this kind of constraint satisfaction problem. CP-SAT is particularly well-suited to scheduling problems like this one because it can efficiently prune infeasible branches of the search space and handle both hard constraints and soft preferences.
 
 ## Inputs 
+
 The model relies on three main inputs:
 
 1. Calendar – the date range over which the schedule will be built (see `utils/calendar.py`)
-
 2. Data – inpatient assignments and leave requests (see `data/inpatient.csv` and `data/leave_request.csv`)
-
 3. Rules – codified constraints that define how providers can be scheduled
 
 ### Rules
@@ -35,14 +34,14 @@ The constraints are implemented as a combination of:
 * **Hard constraints** that cannot be violated (e.g., providers cannot work clinic during inpatient)
 * **Soft constraints** with penalties that guide the optimizer toward preferable solutions while maintaining flexibility when strict adherence isn't possible (e.g., ensuring that providers work as close as possible to their designated weekly clinic amount)
 
-All constraints are considered simultaneously during solving. This approach ensures the scheduler can find workable solutions even when competing requirements make perfect solutions impossible. 
+All constraints are considered simultaneously by CP-SAT during solving. This approach ensures the scheduler can find workable solutions even when competing requirements make perfect solutions impossible. 
 
 ## Scheduling Process
 The scheduling process follows these key steps:
 
 1. **Input Processing**: The system takes in the inputs as defined above.
 2. **Adaptive Minimum Staffing**: The scheduler automatically determines the highest possible minimum staffing level that allows for a feasible schedule. It starts with an initial target of 4 providers and systematically reduces this value until a viable schedule is found.
-3. **Constraint Satisfaction**: The CP-SAT solver applies all hard constraints (like inpatient assignments) while minimizing penalties from soft constraints (like minimizing more than 1 pediatric call a week).
+3. **Constraint Satisfaction**: The CP-SAT solver applies all hard constraints (like inpatient assignments) while minimizing penalties from soft constraints (like avoiding multiple pediatric calls in a week).
 
 The system treats all submitted leave requests as pre-approved during the scheduling process and automatically identifies the highest achievable minimum staffing level given the leave requests. This provides a clear picture of the "worst-case" staffing scenario if all requested leave were granted. Final leave approval remains at the discretion of department chiefs.
 
@@ -58,21 +57,19 @@ This binary decision matrix is then translated into user-friendly outputs which 
 ### Schedule Dataframe
 The primary output is the complete schedule showing which providers are assigned to each session:
 
-```python
-date	      day_of_week   session	    providers	   count
-'2025-08-04'  Monday        morning	    House,Watson   2
-'2025-08-04'  Monday        afternoon	House,Watson   2        
-```
+|      date     | day_of_week |  session  |      providers      | count |
+|---------------|-------------|-----------|---------------------|-------|
+| 2025-08-04    | Monday      | morning   | House,Spaceman      |   2   |
+| 2025-08-04    | Monday      | afternoon | Evil,House          |   2   |
 
 ### Provider Summary Dataframe
-A summary of each provider's workload is also generated:
+A summary of each provider's clinic workload is also generated:
 
-```python
-provider	week_32	week_33	week_34	week_35	total_sessions
-Spaceman	0	    2	    4	    4	    10
-House       6	    5	    6	    6	    23
-Watson   	3	    3	    0	    0	    6
-```
+|  provider  | week_31 | week_32 | week_33 | week_34 | total_sessions |
+|------------|---------|---------|---------|---------|----------------|
+| Evil       |    6    |    2    |    2    |    4    |       14       |
+| House      |    6    |    5    |    6    |    6    |       23       |
+| Spaceman   |    3    |    6    |    0    |    3    |       12       |
 
 ### Solution Status 
 Detailed information about the scheduling process and solution quality:
@@ -95,6 +92,7 @@ Both solution types are valid and usable for implementation, though optimal solu
 The objective value represents the total penalty from soft constraint violations. A lower value indicates a better schedule. Common penalties include:
 * Providers not meeting target clinic sessions
 * A provider on pediatric call multiple times in a week 
+* RDO assigned the day after call
 
 ## Usage
 
