@@ -10,9 +10,7 @@ Consider a 5-day week with 9 total clinic sessions. If 5 providers are available
 
 A rough upper bound on the number of combinations, ignoring all real-world constraints, is:
 
-$${\binom{5}{3}}^9 = 10^9 = 1,\!000,\!000,\!000 \text{ possible schedules}$$
-
-C(5,3)^9 = 10^9 = 1,000,000,000 unconstrainted upper bound of solutions 
+$${\binom{5}{3}}^9 = 10^9 = 1,\000,\000,\000 \text{ possible schedules}$$
 
 Even after applying just a single constraint, limiting each provider to a maximum of 5 sessions per week, a conservative estimate suggests that 10–20% of these combinations remain feasible, resulting in roughly 100–200 million valid schedules. When scaled across multiple departments and multiple weeks, the size of the scheduling space becomes astronomically large.
 
