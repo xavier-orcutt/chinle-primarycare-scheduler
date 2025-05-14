@@ -8,7 +8,7 @@ Currently, only the internal medicine scheduler is active. Versions for family p
 ## Problem Overview
 Consider a 5-day week with 9 total clinic sessions. If 5 providers are available and each clinic session can staff 3 providers,a rough upper bound on the number of combinations is:
 
-$${\binom{5}{3}}^9 = 10^9 = 1,\000,\000,\000 \text{ possible schedules}$$
+$${\binom{5}{3}}^9 = 10^9 = 1,000,000,000 \text{ possible schedules}$$
 
 Even after applying just a single constraint, limiting each provider to a maximum of 6 sessions per week, a conservative estimate suggests that 10–20% of these combinations remain feasible, resulting in roughly 100–200 million valid schedules. When scaled across multiple departments and multiple weeks, the size of the scheduling space becomes astronomically large.
 
