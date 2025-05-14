@@ -49,6 +49,7 @@ def load_leave_requests(leave_requests_csv_path, provider_list):
         raise ValueError(f"Leave CSV file missing required column(s): {', '.join(missing_columns)}")
 
     df['date'] = pd.to_datetime(df['date'])
+    df['date'] = df['date'].dt.date
     df = df[df['provider'].isin(provider_list)].copy()
     return df
 
@@ -81,6 +82,7 @@ def load_inpatient(inpatient_csv_path, provider_list, length):
         raise ValueError(f"Inpatient CSV file missing required column(s): {', '.join(missing_columns)}")
 
     df['start_date'] = pd.to_datetime(df['start_date'])
+    df['start_date'] = df['start_date'].dt.date
 
     # Filter to only providers in department
     df = df[df['provider'].isin(provider_list)].copy()
@@ -137,6 +139,19 @@ def parse_inputs(yml_path, leave_request_csv_path, inpatient_csv_path):
     )
 
     leave_df = load_leave_requests(leave_request_csv_path, providers)
+    # Convert all dates to datetime.date objects
+    leave_df['date'] = leave_df['date'].apply(lambda x: x.date() if hasattr(x, 'date') else x)
+
     inpatient_days_df, inpatient_starts_df = load_inpatient(inpatient_csv_path, providers, inpatient_length)
+    # Convert all dates to datetime.date objects
+    inpatient_days_df['date'] = inpatient_days_df['date'].apply(lambda x: x.date() if hasattr(x, 'date') else x)
+    inpatient_starts_df['start_date'] = inpatient_starts_df['start_date'].apply(lambda x: x.date() if hasattr(x, 'date') else x)
+
+    # Convert any holiday dates in the config
+    if 'clinic_rules' in config and 'holiday_dates' in config['clinic_rules']:
+        config['clinic_rules']['holiday_dates'] = [
+            d.date() if hasattr(d, 'date') else d 
+            for d in config['clinic_rules']['holiday_dates']
+        ]
 
     return config, leave_df, inpatient_days_df, inpatient_starts_df
