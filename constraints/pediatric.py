@@ -2,6 +2,25 @@ from ortools.sat.python import cp_model
 from datetime import timedelta
 from collections import defaultdict
 
+def get_schedule_week_key(d):
+    """
+    Returns a consistent week key for scheduling purposes, with weeks running Sunday to Saturday.
+    
+    Parameters:
+    ----------
+    d : datetime.date
+        The date to find the week key for.
+        
+    Returns:
+    -------
+    tuple
+        A unique identifier for the week: (year, month, day) of the Sunday that starts the week.
+    """
+    # Find the Sunday that starts this week
+    days_since_sunday = d.weekday() + 1 if d.weekday() < 6 else 0
+    week_start = d - timedelta(days=days_since_sunday)
+    return (week_start.year, week_start.month, week_start.day)
+
 def create_shift_variables(model, 
                            providers, 
                            calendar):
@@ -94,7 +113,7 @@ def add_inpatient_block_constraints(model,
         # Block the day before inpatient starts (typically Monday)
         pre_leave_date = start_date - timedelta(days=1)
         blocked_dates[provider].add(pre_leave_date)
-        
+
         # Block the Friday after inpatient ends
         post_leave_date = start_date + timedelta(days=10)
         blocked_dates[provider].add(post_leave_date) 
@@ -120,6 +139,7 @@ def add_call_constraints(model,
                          clinic_rules):
     """
     Enforces pediatric call scheduling constraints:
+    - Exactly one provider on call each call day
     - No call the day before or the day of leave
     - No call while on inpatient duty
     - For weeks with federal holidays:
@@ -152,7 +172,6 @@ def add_call_constraints(model,
     clinic_rules : dict
         Parsed clinic-level rules from the YAML.
     """
-
     # Initialize objective terms for soft constraints
     objective_terms = []
     
@@ -212,6 +231,13 @@ def add_call_constraints(model,
                 if provider not in call_vars[date]:
                     call_vars[date][provider] = shift_vars[provider][date]['call']
 
+    # Exactly one provider on call each call day
+    for date in call_vars:
+        provider_vars = list(call_vars[date].values())
+        if provider_vars:
+            # Sum of all provider variables for this call date must equal 1
+            model.Add(sum(provider_vars) == 1)
+
     # Rule 1 & 2: Block call for providers on leave or inpatient duty
     for date, providers in call_vars.items():
         for provider in providers:
@@ -223,23 +249,19 @@ def add_call_constraints(model,
             if provider in inpatient_dates[date]:
                 model.Add(call_vars[date][provider] == 0)
 
-    # Helper function to get the week key
-    def get_week_key(d):
-        return (d.year, d.isocalendar()[1])
-
     # Find dates where call sessions exist, sorted by date
     call_dates = sorted(call_vars.keys())
     
-    # Create a mapping of week to dates with call
+   # Create a mapping of week to dates with call
     week_to_dates = defaultdict(list)
     for d in call_dates:
-        week_key = get_week_key(d)
+        week_key = get_schedule_week_key(d) 
         week_to_dates[week_key].append(d)
     
     # Process each week
     for week_key, dates in week_to_dates.items():
         # Find holidays in this week
-        week_holidays = [d for d in holiday_dates if get_week_key(d) == week_key]
+        week_holidays = [d for d in holiday_dates if get_schedule_week_key(d) == week_key]
         
         # Rule 3: Special holiday call scheduling
         if week_holidays:
@@ -348,13 +370,11 @@ def add_call_constraints(model,
     for call_date in sorted(call_vars.keys()):
         day_of_week = call_date.strftime('%A')
         if day_of_week in ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday']:
-            # For grouping, use the date of the Sunday that starts this "call week"
-            if day_of_week == 'Sunday':
-                week_start = call_date
-            else:
-                # Calculate the Sunday that started this week
-                days_since_sunday = {'Monday': 1, 'Tuesday': 2, 'Wednesday': 3, 'Thursday': 4}
-                week_start = call_date - timedelta(days=days_since_sunday[day_of_week])
+            # For grouping, use the Sunday that starts this week, which is what our
+            # get_schedule_week_key function returns
+            week_start_key = get_schedule_week_key(call_date)
+            # Extract just the date component for the Sunday
+            week_start = call_date - timedelta(days=call_date.weekday() + 1 if call_date.weekday() < 6 else 0)
             
             # Add to the appropriate call week
             call_weeks[week_start].append(call_date)
@@ -394,6 +414,57 @@ def add_call_constraints(model,
                 objective_terms.append(penalty_var * 100) 
     
     return objective_terms
+
+def add_post_call_afternoon_constraints(model, 
+                                        shift_vars, 
+                                        calendar):
+    """
+    Ensures providers who were on call the previous night do not have afternoon clinic sessions
+    the following day.
+    
+    Parameters:
+    ----------
+    model : cp_model.CpModel
+        OR-Tools model.
+    
+    shift_vars : dict
+        Nested dict of binary decision variables: shift_vars[provider][date][session].
+    
+    calendar : dict
+        Dictionary from generate_pediatric_calendar().
+        Keys are datetime.date, values are lists of valid sessions.
+    """
+    # Find all dates with call sessions
+    call_dates = sorted([d for d in calendar.keys() if 'call' in calendar[d]])
+    
+    # For each call date, block afternoon sessions the next day
+    for call_date in call_dates:
+        next_day = call_date + timedelta(days = 1)
+        
+        # Skip if next day is not in calendar
+        if next_day not in calendar:
+            continue
+        
+        # Skip if next day does not have afternoon session
+        if 'afternoon' not in calendar[next_day]:
+            continue
+        
+        # For each provider
+        for provider in shift_vars:
+            # Skip if provider doesn't have call on the call date
+            if call_date not in shift_vars[provider] or 'call' not in shift_vars[provider][call_date]:
+                continue
+                
+            # Skip if provider doesn't have afternoon session on next day
+            if next_day not in shift_vars[provider] or 'afternoon' not in shift_vars[provider][next_day]:
+                continue
+            
+            # Create the constraint: if provider takes call, they cannot have afternoon clinic next day
+            call_var = shift_vars[provider][call_date]['call']
+            afternoon_var = shift_vars[provider][next_day]['afternoon']
+            
+            # If call_var is 1, afternoon_var must be 0
+            model.Add(afternoon_var == 0).OnlyEnforceIf(call_var)
 
 def add_clinic_count_constraints(model,
                                  shift_vars,
@@ -440,16 +511,19 @@ def add_clinic_count_constraints(model,
         provider = row['provider']
         inpatient_end = row['start_date'] + timedelta(days=6)  # Monday
         post_week_tuesday = inpatient_end + timedelta(days=1)  # Tuesday
-        week_key = (post_week_tuesday.year, post_week_tuesday.isocalendar()[1])
+        week_key = get_schedule_week_key(post_week_tuesday)
         post_inpatient_weeks[provider].add(week_key)
 
     # Group shifts by provider and week
     weekly_shifts = defaultdict(lambda: defaultdict(list))
     for provider in shift_vars:
         for date in shift_vars[provider]:
-            week_key = (date.year, date.isocalendar()[1])
+            # Use the consistent week key definition
+            week_key = get_schedule_week_key(date)
             for session in shift_vars[provider][date]:
-                weekly_shifts[provider][week_key].append(shift_vars[provider][date][session])
+                # Only count morning and afternoon sessions as clinic sessions
+                if session in ['morning', 'afternoon']:
+                    weekly_shifts[provider][week_key].append(shift_vars[provider][date][session])
 
     # Apply constraints for each provider/week
     for provider, weeks in weekly_shifts.items():
@@ -468,8 +542,7 @@ def add_clinic_count_constraints(model,
             model.Add(sum(var_list) <= target_max_clinics)
             
             # Min constraint becomes soft with penalty
-            target_min_clinics = max(1, target_max_clinics)
-            #target_min_clinics = max(1, target_max_clinics - 1) for more flexibility   
+            target_min_clinics = max(1, target_max_clinics) # for more flexibility max(1, target_max_clinics - 1) 
             
             # Create penalty variable for under-minimum
             under_min = model.NewIntVar(0, 10, f"under_min_{provider}_{week_key}")
@@ -493,6 +566,7 @@ def add_rdo_constraints(model,
       - NP/PAs DO get RDO even during holiday weeks
       - Any provider with inpatient or leave that week does NOT get additional RDO
       - RDO must occur on an eligible weekday (e.g., Mon/Tue/Wed/Fri)
+      - RDO can’t be day of call or day after call
       - If a provider has an rdo_preference set in YAML, it must occur on that day
 
     Parameters:
@@ -521,43 +595,49 @@ def add_rdo_constraints(model,
     provider_roles = {p: info['role'] for p, info in provider_config.items()}
     rdo_preferences = {p: info.get('rdo_preference') for p, info in provider_config.items()}
 
-    # Define week key function with proper year boundary handling
-    def get_week_key(d): 
-        return (d.year, d.isocalendar()[1])
+    # Define providers needing RDO (exclude Shin and Powell)
+    providers_needing_rdo = [p for p in provider_roles.keys() if p not in ['Shin', 'Powell']]
 
     # Identify weeks where providers don't get RDOs
-    # (due to inpatient, leave, or MD holiday)
     blocked_weeks = defaultdict(set)
-    
+
     # Block weeks where provider has leave
     for _, row in leave_df.iterrows():
         provider = row['provider']
-        week = get_week_key(row['date'])
+        date = row['date'].date() if hasattr(row['date'], 'date') else row['date']
+        week = get_schedule_week_key(date)
         blocked_weeks[provider].add(week)
-    
+
     # Block weeks where provider has inpatient duty
     for _, row in inpatient_days_df.iterrows():
         provider = row['provider']
-        week = get_week_key(row['date'])
+        date = row['date'].date() if hasattr(row['date'], 'date') else row['date']
+        week = get_schedule_week_key(date)
         blocked_weeks[provider].add(week)
-    
+
     # Block holiday weeks for MD/DO providers only
     for holiday_date in holiday_dates:
-        holiday_week = get_week_key(holiday_date)
+        holiday_week = get_schedule_week_key(holiday_date)
         for provider, role in provider_roles.items():
             if role in ['MD', 'DO']:
                 blocked_weeks[provider].add(holiday_week)
 
-    # Organize dates by provider and week, keeping only eligible days
+    # Organize dates by provider and week, keeping only eligible DAY OF WEEK
+    # ONLY for providers who need RDOs
     eligible_dates_by_provider_week = defaultdict(lambda: defaultdict(list))
-    
     for provider in shift_vars:
+        # Skip providers who don't need RDOs
+        if provider not in providers_needing_rdo:
+            continue
+            
         for date in shift_vars[provider]:
-            # Only consider days that are eligible for RDO
             day_of_week = date.strftime('%A')
             if day_of_week in eligible_days:
-                week = get_week_key(date)
+                week = get_schedule_week_key(date)
                 eligible_dates_by_provider_week[provider][week].append(date)
+
+    # Initialize a list to collect penalty variables
+    rdo_penalty_vars = []
 
     # Apply RDO constraints for each provider and week
     for provider, weeks_data in eligible_dates_by_provider_week.items():
@@ -581,23 +661,51 @@ def add_rdo_constraints(model,
             # Create RDO indicators for each eligible day
             rdo_indicators = []
             for date in eligible_dates:
-                # Check if the date has shift variables
                 if date in shift_vars[provider]:
-                    # Variable name includes date for uniqueness
+                    # Create the RDO indicator
                     is_rdo = model.NewBoolVar(f"{provider}_RDO_{date.isoformat()}")
                     
-                    # Sum all sessions for this day
-                    day_sessions = list(shift_vars[provider][date].values())
+                    # Get clinic sessions
+                    clinic_sessions = [
+                        shift_vars[provider][date][session] 
+                        for session in shift_vars[provider][date]
+                        if session in ['morning', 'afternoon']
+                    ]
                     
-                    # A day is an RDO if all sessions are 0
-                    model.Add(sum(day_sessions) == 0).OnlyEnforceIf(is_rdo)
-                    model.Add(sum(day_sessions) > 0).OnlyEnforceIf(is_rdo.Not())
+                    # RDO means no clinic sessions
+                    if clinic_sessions:
+                        model.Add(sum(clinic_sessions) == 0).OnlyEnforceIf(is_rdo)
+                        model.Add(sum(clinic_sessions) > 0).OnlyEnforceIf(is_rdo.Not())
+                    
+                    # No RDO on call
+                    if 'call' in shift_vars[provider][date]:
+                        call_var = shift_vars[provider][date]['call']
+                        model.Add(call_var == 0).OnlyEnforceIf(is_rdo)
+
+                    # SOFT CONSTRAINT: Penalize RDO after call
+                    yesterday = date - timedelta(days=1)
+                    if (yesterday in shift_vars[provider] and 
+                        'call' in shift_vars[provider][yesterday]):
+                        yesterday_call = shift_vars[provider][yesterday]['call']
+                        
+                        # Create a penalty variable for post-call RDO
+                        post_call_rdo = model.NewBoolVar(f"{provider}_post_call_rdo_{date.isoformat()}")
+                        
+                        # post_call_rdo is 1 when both yesterday_call and is_rdo are 1
+                        model.AddBoolAnd([yesterday_call, is_rdo]).OnlyEnforceIf(post_call_rdo)
+                        model.AddBoolOr([yesterday_call.Not(), is_rdo.Not()]).OnlyEnforceIf(post_call_rdo.Not())
+                        
+                        # Add penalty to the collection
+                        rdo_penalty_vars.append(post_call_rdo)
                     
                     rdo_indicators.append(is_rdo)
             
             # Require exactly one RDO day per week (if eligible days exist)
             if rdo_indicators:
                 model.Add(sum(rdo_indicators) == 1)
+                
+    # Return the penalty variables to be added to the objective function
+    return rdo_penalty_vars   
 
 def add_min_max_staffing_constraints(model, 
                                      shift_vars, 
@@ -625,7 +733,10 @@ def add_min_max_staffing_constraints(model,
     max_staff = clinic_rules.get('staffing', {}).get('max_providers_per_session', 5)
 
     for d, sessions in calendar.items():
-        for s in sessions:
+        # Filter to only include morning and afternoon sessions
+        clinic_sessions = [s for s in sessions if s in ['morning', 'afternoon']]
+        
+        for s in clinic_sessions:
             staff_vars = [
                 shift_vars[provider][d][s]
                 for provider in shift_vars
