@@ -36,7 +36,7 @@ clinic_rules:
 
   staffing:
     min_providers_per_session: 1
-    max_providers_per_session: 5
+    max_providers_per_session: 4
 
   holiday_dates:
     - 2025-01-01  # New Year's Day
@@ -65,7 +65,7 @@ providers:
     role: MD
     max_clinics_per_week: 6
   
-  Menachoff:
+  Menachof:
     role: MD
     max_clinics_per_week: 3
 
@@ -80,11 +80,11 @@ providers:
   Shin: 
     role: MD
     max_clinics_per_week: 2 
-  
-  Tarr:
+
+  Sridhar: 
     role: MD
     max_clinics_per_week: 6
   
-  Vaish: 
+  Tarr:
     role: MD
     max_clinics_per_week: 6

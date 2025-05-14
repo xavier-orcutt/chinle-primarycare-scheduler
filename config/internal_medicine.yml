@@ -18,17 +18,17 @@ clinic_rules:
     Friday: [morning, afternoon]
 
   random_day_off:
-    eligible_days: [Monday, Tuesday, Wednesday, Friday]   # Thursday is excluded
+    eligible_days: [Monday, Tuesday, Wednesday, Friday]   
 
   inpatient_schedule:
     inpatient_length: 7
     inpatient_starts_on: Tuesday
     inpatient_ends_on: Monday
-    pre_inpatient_leave: Monday     # RDO the day before inpatient starts
-    post_inpatient_leave: Friday    # RDO after inpatient ends
+    pre_inpatient_leave: Monday     
+    post_inpatient_leave: Friday    
 
   staffing:
-    min_providers_per_session: 3
+    min_providers_per_session: 1
     max_providers_per_session: 5
 
   holiday_dates:
