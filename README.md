@@ -61,7 +61,7 @@ The primary output is the complete schedule showing which providers are assigned
 ```python
 date	      day_of_week   session	    providers	   count
 '2025-08-04'  Monday        morning	    House,Watson   2
-'2025-08-04'  Monday        afternoon	    House,Watson   2        
+'2025-08-04'  Monday        afternoon	House,Watson   2        
 ```
 
 ### Provider Summary Dataframe
@@ -103,26 +103,25 @@ A walkthrough of how the internal medicine and pediatric schedules were created 
 ## Directory Architecture
 
 ```bash
-├── engine/                        # Entry point for running the scheduler
-│   └── engine.py
+├── config/                        # Clinic and provider rules 
+│   ├── internal_medicine.yml
+│   └── pediatric.yml
 ├── constraints/                   # Scheduling rules and constraint logic
 │   ├── internal_medicine.py
 │   └── pediatric.py
-├── utils/                         # Input parsing and calendar creation
-│   ├── parser.py
-│   └── calendar.py
-├── config/                        # Clinic and provider rules 
-│   ├── internal_medicine.yml
-│   └── pediatric.yml    
-├── docs/                          # Plain-English summary of scheduling rules     
-│   ├── clinic_rules.pdf
-│   └── call_rules.pdf     
 ├── data/                          # Input data
 │   ├── inpatient.csv
 │   └── leave_requests.csv
-└── notebooks/                     # Collection of Jupyter notebooks
-    └── august_schedule.ipynb    
-
+├── docs/                          # Plain-English summary of scheduling rules     
+│   ├── clinic_rules.pdf
+│   └── call_rules.pdf     
+├── engine/                        # Entry point for running the scheduler
+│   └── engine.py
+├── notebooks/                     # Collection of Jupyter notebooks
+│   └── august_schedule.ipynb
+└── utils/                         # Input parsing and calendar creation
+    ├── parser.py
+    └── calendar.py
 ```
 
 ## Requirements
@@ -131,5 +130,6 @@ Built and tested in python 3.13.
 
 Core dependencies: 
 - pandas
+- numpy
 - pyyaml
 - ortools
