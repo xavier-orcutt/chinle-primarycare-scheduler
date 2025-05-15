@@ -595,8 +595,11 @@ def add_rdo_constraints(model,
     provider_roles = {p: info['role'] for p, info in provider_config.items()}
     rdo_preferences = {p: info.get('rdo_preference') for p, info in provider_config.items()}
 
-    # Define providers needing RDO (exclude Shin and Powell)
-    providers_needing_rdo = [p for p in provider_roles.keys() if p not in ['Shin', 'Powell']]
+    # Define providers needing RDO (exclude family practice and med/peds)
+    providers_needing_rdo = [
+        p for p in provider_roles.keys() 
+        if provider_config.get(p, {}).get('needs_rdo', True)  # Default to True if not specified
+    ]
 
     # Identify weeks where providers don't get RDOs
     blocked_weeks = defaultdict(set)
@@ -703,7 +706,7 @@ def add_rdo_constraints(model,
             # Require exactly one RDO day per week (if eligible days exist)
             if rdo_indicators:
                 model.Add(sum(rdo_indicators) == 1)
-                
+
     # Return the penalty variables to be added to the objective function
     return rdo_penalty_vars   
 
