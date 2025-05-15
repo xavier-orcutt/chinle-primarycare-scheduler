@@ -14,7 +14,7 @@ Even after applying just a single constraint, limiting each provider to a maximu
 
 The real complexity, however, doesn’t lie in the sheer number of possible schedules, but in how tightly interwoven constraints like leave, RDOs, staffing minimums and maximums, and per-provider clinic caps interact to restrict the feasible set.
 
-To solve this efficiently, we use [CP-SAT](https://developers.google.com/optimization/cp), an open-source solver developed by Google that’s designed for precisely this kind of constraint satisfaction problem. CP-SAT is particularly well-suited to scheduling problems like this one because it can efficiently prune infeasible branches of the search space and handle both hard constraints and soft preferences.
+To solve this efficiently, we use [CP-SAT](https://developers.google.com/optimization/cp), an open-source solver developed by Google that’s designed for constraint satisfaction problems. CP-SAT is particularly well-suited to scheduling problems like this one because it can efficiently prune infeasible branches of the search space and handle both hard constraints and soft preferences.
 
 ## Inputs 
 
