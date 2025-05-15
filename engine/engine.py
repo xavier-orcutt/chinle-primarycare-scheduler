@@ -562,7 +562,7 @@ def create_peds_schedule(
             # Create a detailed status dictionary
             solution_status = {
                 'Status': 'OPTIMAL' if status == cp_model.OPTIMAL else 'FEASIBLE',
-                'Minimum providers per session': min_staff_achieved,
+                'Minimum providers per session': int(min_staff_achieved),
                 'Objective value': solver.ObjectiveValue() if objective_terms else None,
                 'Solve time': total_solve_time,
                 'Branches': solver.NumBranches(),
