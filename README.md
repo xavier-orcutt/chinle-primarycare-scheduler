@@ -1,11 +1,11 @@
 # Chinle Primary Care Scheduler 
-This project is a custom-built Python tool to help automate and streamline the creation of outpatient clinic schedules for internal medicine, family practice, and pediatrics. It accounts for each provider’s schedule preferences, clinic workload limits, time off, inpatient assignments, and federal holidays.
+
+This project is a custom-built Python tool to help automate and streamline the creation of outpatient clinic schedules for Internal Medicine, Family Practice, and Pediatrics. It accounts for each provider’s schedule preferences, clinic workload limits, time off, inpatient assignments, and federal holidays.
 
 The goal is to make the scheduling process more transparent, consistent, and timely. Ideally, this tool will allow the entire outpatient schedule to be generated shortly after the inpatient schedule and leave requests are finalized.
 
-Currently, the internal medicine and pediatric schedulers are active. A version for family practice is in development.
-
 ## Problem Overview
+
 Consider a 5-day week with 9 total clinic sessions. If 5 providers are available per day on average and each clinic session can staff 3 providers, an upper bound on the number of schedule combinations is:
 
 $${\binom{5}{3}}^9 = 10^9 = 1,000,000,000$$
@@ -14,7 +14,11 @@ Even after applying just a single constraint, limiting each provider to a maximu
 
 The real complexity, however, doesn’t lie in the sheer number of possible schedules, but in how tightly interwoven constraints like leave, RDOs, staffing minimums and maximums, and per-provider clinic caps interact to restrict the feasible set.
 
-To solve this efficiently, we use [CP-SAT](https://developers.google.com/optimization/cp), an open-source solver developed by Google that’s designed for constraint satisfaction problems. CP-SAT is particularly well-suited to scheduling problems like this one because it can efficiently prune infeasible branches of the search space and handle both hard constraints and soft preferences.
+To solve this efficiently, we use [CP-SAT](https://developers.google.com/optimization/cp), an open-source solver developed by Google that’s designed for constraint satisfaction problems. CP-SAT is particularly well-suited to scheduling problems like this one because it can efficiently prune infeasible branches of the search space and handle both hard constraints and soft preferences. 
+
+## How Does It Work? 
+
+CP-SAT is a portfolio solver, meaning it runs multiple diverse algorithms at the same time. Each algorithm has its own strengths and weaknesses, allowing the solver to tackle different aspects of the problem effectively. These algorithms communicate and share information with each other, such as improved solutions or more efficient search spaces, helping the solver converge more quickly on an optimal solution.
 
 ## Inputs 
 
@@ -44,6 +48,16 @@ The scheduling process follows these key steps:
 3. **Constraint Satisfaction**: The CP-SAT solver applies all hard constraints (like inpatient assignments) while minimizing penalties from soft constraints (like avoiding multiple pediatric calls in a week).
 
 The system treats all submitted leave requests as pre-approved during the scheduling process and automatically identifies the highest achievable minimum staffing level given the leave requests. This provides a clear picture of the "worst-case" staffing scenario if all requested leave were granted. Final leave approval remains at the discretion of department chiefs.
+
+## Cross-Department Scheduling 
+
+Some primary care providers at Chinle serve in multiple departments, for example, working clinic in Family Practice while also taking call or clinic shifts in Pediatrics. To manage this complexity, the scheduler is run sequentially by department in a way that accounts for interdependencies:
+
+* **Pediatrics First**: The Pediatrics schedule is generated first. This determines call and clinic assignments for all providers involved in Pediatric coverage, including those who also work in other departments.
+
+* **Internal Medicine and Family Practice Next**: Once the Pediatrics schedule is finalized, it is used to block off corresponding dates for dual-role providers. These constraints are then incorporated into the Internal Medicine and Family Practice scheduling runs to ensure providers aren’t double-booked or overcommitted.
+
+This staged approach ensures that cross-department providers are scheduled consistently and without conflict across the three services. It also reflects the higher coordination demands of Pediatrics, where call coverage is tightly structured and less flexible than general clinic staffing.
 
 ## Interpreting Scheduler Output
 
@@ -96,16 +110,18 @@ The objective value represents the total penalty from soft constraint violations
 
 ## Usage
 
-A walkthrough of how the internal medicine and pediatric schedules were created for August 2025 can be found in `notebooks/august_schedule.ipynb`.
+A walkthrough of how the internal medicine, family practice, and pediatric schedules were created for August 2025 can be found in `notebooks/august_schedule.ipynb`.
 
 ## Directory Architecture
 
 ```bash
 ├── config/                        # Clinic and provider rules 
+│   ├── family_medicine.yml
 │   ├── internal_medicine.yml
 │   └── pediatric.yml
 ├── constraints/                   # Scheduling rules and constraint logic
-│   ├── internal_medicine.py
+│   ├── family_medicine.py
+│   ├── internal_medicine.yml
 │   └── pediatric.py
 ├── data/                          # Input data
 │   ├── inpatient.csv
@@ -117,6 +133,10 @@ A walkthrough of how the internal medicine and pediatric schedules were created 
 │   └── engine.py
 ├── notebooks/                     # Collection of Jupyter notebooks
 │   └── august_schedule.ipynb
+├── output/                        # Schedule outputs saved as CSV files
+│   ├── fp_schedule_df.csv
+│   ├── im_schedule_df.csv
+│   └── peds_schedule_df.csv
 └── utils/                         # Input parsing and calendar creation
     ├── parser.py
     └── calendar.py
