@@ -1,0 +1,83 @@
+# Familiy practice rules
+
+# Clinic-level rules 
+clinic_rules:
+
+  clinic_days:
+    - Monday
+    - Tuesday
+    - Wednesday
+    - Thursday
+    - Friday
+
+  clinic_sessions:
+    Monday: [morning, afternoon]
+    Tuesday: [morning, afternoon]
+    Wednesday: [morning, afternoon]
+    Thursday: [afternoon]  
+    Friday: [morning, afternoon]
+
+  random_day_off:
+    eligible_days: [Monday, Tuesday, Wednesday, Friday]   
+
+  inpatient_schedule:
+    inpatient_length: 7
+    inpatient_starts_on: Tuesday
+    inpatient_ends_on: Monday
+    pre_inpatient_leave: Monday     
+    post_inpatient_leave: Friday    
+
+  staffing:
+    min_providers_per_session: 0
+    max_providers_per_session: 5
+
+  holiday_dates:
+    - 2025-01-01  # New Year's Day
+    - 2025-01-20  # MLK Day
+    - 2025-02-17  # Presidents' Day
+    - 2025-05-26  # Memorial Day
+    - 2025-06-19  # Juneteenth
+    - 2025-07-04  # Independence Day
+    - 2025-09-01  # Labor Day
+    - 2025-10-13  # Indigenous Peoples' Day
+    - 2025-11-11  # Veterans Day
+    - 2025-11-27  # Thanksgiving
+    - 2025-12-25  # Christmas
+
+# Provider-level rules 
+providers:
+  Austin:
+    role: NP
+    max_clinics_per_week: 6 
+
+  Bia:
+    role: MD
+    max_clinics_per_week: 6 
+  
+  Brush:
+    role: NP
+    max_clinics_per_week: 5
+
+  Gelman: 
+    role: MD
+    max_clinics_per_week: 4
+  
+  Mullenix:
+    role: NP
+    max_clinics_per_week: 6
+  
+  Powell:
+    role: MD
+    max_clinics_per_week: 5
+  
+  Salay:
+    role: MD
+    max_clinics_per_week: 6
+  
+  Shin:
+    role: MD
+    max_clinics_per_week: 4
+  
+  Suen:
+    role: NP
+    max_clinics_per_week: 6

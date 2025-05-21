@@ -56,44 +56,59 @@ providers:
   Bedelle:
     role: MD
     max_clinics_per_week: 6
-    needs_rdo: true
+    needs_rdo: true             
+    takes_call: true
+
+  Brush: 
+    role: NP,
+    max_clinics_per_week: 1
+    needs_rdo: false           # RDO will be assigned in the family practice scheduler
+    takes_call: false          # Doesn't take call
   
   Carrasco:
     role: MD
     max_clinics_per_week: 6
     needs_rdo: true
+    takes_call: true
 
   Mador: 
     role: MD
     max_clinics_per_week: 6
     needs_rdo: true
+    takes_call: true
   
   Menachof:
     role: MD
     max_clinics_per_week: 3
     needs_rdo: true
+    takes_call: true
 
   Miller:
     role: MD
     max_clinics_per_week: 6
     needs_rdo: true
+    takes_call: true
 
   Powell:
     role: MD
     max_clinics_per_week: 0   # Family doctor who takes call but does clinics in family practice
-    needs_rdo: false          # RDO will be assigned in the family practice scheduler 
+    needs_rdo: false
+    takes_call: true          
 
   Shin: 
     role: MD
     max_clinics_per_week: 2
-    needs_rdo: false         # RDO will be assigned in the family practice scheduler 
+    needs_rdo: false
+    takes_call: true          
 
   Sridhar: 
     role: MD
     max_clinics_per_week: 6
     needs_rdo: true
+    takes_call: true
   
   Tarr:
     role: MD
     max_clinics_per_week: 6
     needs_rdo: true
+    takes_call: true
