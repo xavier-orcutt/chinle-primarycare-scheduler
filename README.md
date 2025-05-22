@@ -25,7 +25,7 @@ CP-SAT is a portfolio solver, meaning it runs multiple diverse algorithms at the
 The model relies on three main inputs:
 
 1. **Calendar** – the date range over which the schedule will be built (see `utils/calendar.py`).
-2. **Data** – inpatient assignments and leave requests (see `data/inpatient.csv` and `data/leave_request.csv`).
+2. **Data** – inpatient assignments and leave requests (see `data/inpatient.csv` and `data/leave_requests.csv`).
 3. **Rules** – codified constraints that define how providers can be scheduled.
 
 ### Rules
