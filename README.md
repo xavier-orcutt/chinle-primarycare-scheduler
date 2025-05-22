@@ -1,6 +1,6 @@
 # Chinle Primary Care Scheduler 
 
-This project is a custom-built Python tool to help automate and streamline the creation of outpatient clinic schedules for Internal Medicine, Family Practice, and Pediatrics. It accounts for each provider’s schedule preferences, clinic workload limits, time off, inpatient assignments, and federal holidays.
+The scheduler is a custom-built Python tool to help automate and streamline the creation of outpatient clinic schedules for Internal Medicine, Family Practice, and Pediatrics. 
 
 The goal is to make the scheduling process more transparent, consistent, and timely. Ideally, this tool will allow the entire outpatient schedule to be generated shortly after the inpatient schedule and leave requests are finalized.
 
@@ -14,15 +14,21 @@ Even after applying just a single constraint, limiting each provider to a maximu
 
 The real complexity, however, doesn’t lie in the sheer number of possible schedules, but in how tightly interwoven constraints like leave, RDOs, staffing minimums and maximums, and per-provider clinic caps interact to restrict the feasible set.
 
-To solve this efficiently, we use [CP-SAT](https://developers.google.com/optimization/cp), an open-source solver developed by Google that’s designed for constraint satisfaction problems. CP-SAT is particularly well-suited to scheduling problems like this one because it can efficiently prune infeasible branches of the search space and handle both hard constraints and soft preferences. 
+To solve this efficiently, the scheduler uses [CP-SAT](https://developers.google.com/optimization/cp), an open-source solver developed by Google that’s designed for constraint satisfaction problems. CP-SAT is particularly well-suited to scheduling problems like ours because it can efficiently handle both hard constraints and soft preferences. 
 
-## How Does It Work? 
+## How the Scheduler Works 
 
-CP-SAT is a portfolio solver, meaning it runs multiple diverse algorithms at the same time. Each algorithm has its own strengths and weaknesses, allowing the solver to tackle different aspects of the problem effectively. These algorithms communicate and share information with each other, such as more efficient search spaces, helping the solver converge more quickly on an optimal solution.
+The Chinle Primary Care Scheduler is built in two layers:
+
+### 1. The Scheduling Software 
+The scheduling software converts the primary care department clinic rules into computer logic. It accounts for each provider’s schedule preferences, clinic workload limits, time off, inpatient assignments, and federal holidays.
+
+### 2. The Optimization Engine (CP-SAT)
+The scheduling software uses CP-SAT as its "brain" for solving the scheduling puzzle. CP-SAT is able to try millions of scheduling combinations in seconds, remember all rules, and find the best solution among all the valid possibilities. 
 
 ## Inputs 
 
-The model relies on three main inputs:
+The scheduler relies on three main inputs:
 
 1. **Calendar** – the date range over which the schedule will be built (see `utils/calendar.py`).
 2. **Data** – inpatient assignments and leave requests (see `data/inpatient.csv` and `data/leave_requests.csv`).
@@ -40,8 +46,9 @@ The constraints are implemented as a combination of:
 
 All constraints are considered simultaneously by CP-SAT during solving. This approach ensures the scheduler can find workable solutions even when competing requirements make perfect solutions impossible. 
 
-## Scheduling Process
-The scheduling process follows these key steps:
+## Scheduling Generation
+
+Each department (Internal Medicine, Family Practice, and Pediatrics) generates its own schedule independently. The schedule for each department is created through these key steps:
 
 1. **Input Processing**: The system takes in the inputs as defined above.
 2. **Adaptive Minimum Staffing**: The scheduler automatically determines the highest possible minimum staffing level that allows for a feasible schedule. It starts with an initial target of 4 providers and systematically reduces this value until a viable schedule is found.
@@ -59,9 +66,9 @@ Some primary care providers at Chinle serve in multiple departments, for example
 
 This staged approach ensures that cross-department providers are scheduled consistently and without conflict across the three services. It also reflects the higher coordination demands of Pediatrics, where call coverage is tightly structured and less flexible than general clinic staffing.
 
-## Interpreting Scheduler Output
+## Interpreting the Scheduler Output
 
-The CP-SAT model produces a binary output for each provider, day, and session:
+The scheduler produces a binary output for each provider, day, and session:
 
 - 1 = scheduled to work in clinic or call
 - 0 = not scheduled (ie., admin, RDO, inpatient, or leave) 
@@ -69,6 +76,7 @@ The CP-SAT model produces a binary output for each provider, day, and session:
 This binary decision matrix is then translated into user-friendly outputs which provide detailed information about the quality of the scheduling solution.
 
 ### Schedule Dataframe
+
 The primary output is the complete schedule showing which providers are assigned to each session:
 
 |      date     | day_of_week |  session  |      providers      | count |
@@ -77,6 +85,7 @@ The primary output is the complete schedule showing which providers are assigned
 | 2025-08-04    | Monday      | afternoon | Evil,House          |   2   |
 
 ### Provider Summary Dataframe
+
 A summary of each provider's clinic workload is also generated:
 
 |  provider  | week_31 | week_32 | week_33 | week_34 | total_sessions |
@@ -86,6 +95,7 @@ A summary of each provider's clinic workload is also generated:
 | Spaceman   |    3    |    6    |    0    |    3    |       12       |
 
 ### Solution Status 
+
 Detailed information about the scheduling process and solution quality:
 
 ```python
