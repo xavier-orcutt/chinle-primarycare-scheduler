@@ -36,23 +36,25 @@ The scheduler relies on three main inputs:
 
 ### Rules
 
-The rules section deserves particular attention as it's the heart of the scheduling system. The scheduler enforces the core rules as defined in the `docs/clinic_rules.pdf` and `docs/call_rules.pdf`. 
+The rules section deserves particular attention as it's the heart of the scheduling system. The scheduler enforces the core rules through a three-step process:
 
-General clinic and provider-specific rules are defined in the `config` folder and are imported and codified as constraints for the model in `constraints`.
+1. **Plain-English Documentation** - Core scheduling policies are documented in `docs/clinic_rules.pdf` and `docs/call_rules.pdf`. 
+2. **Configuration Files** - These policies are codified in human-readable YAML files (`config/` folder) containing both clinic-level rules (staffing minimums, holiday dates) and provider-specific rules (workload limits, RDO preferences). This structure makes it easy to adjust existing constraints without programming knowledge, add new providers or modify existing provider parameters, and maintain separate rule sets for each department.
+3. **Mathematical Constraints** - The YAML rules are translated into mathematical constraints for the CP-SAT model in the `constraints/` folder.
 
-The constraints are implemented as a combination of:
-* **Hard constraints** that cannot be violated (e.g., providers cannot work clinic during inpatient).
-* **Soft constraints** with penalties that guide the optimizer toward preferable solutions while maintaining flexibility when strict adherence isn't possible (e.g., ensuring that providers work as close as possible to their designated weekly clinic amount).
+    The mathematical constraints are implemented as a combination of:
+    * **Hard constraints** that cannot be violated (e.g., providers cannot work clinic during inpatient).
+    * **Soft constraints** with penalties that guide the optimizer toward preferable solutions while maintaining flexibility when strict adherence isn't possible (e.g., ensuring that providers work as close as possible to their designated weekly clinic amount).
 
-All constraints are considered simultaneously by CP-SAT during solving. This approach ensures the scheduler can find workable solutions even when competing requirements make perfect solutions impossible. 
+    All constraints are considered simultaneously by CP-SAT during solving. This approach ensures the scheduler can find workable solutions even when competing requirements make perfect solutions impossible.
 
 ## Schedule Generation
 
 Each department (Internal Medicine, Family Practice, and Pediatrics) generates its own schedule. The schedule for each department is created through these key steps:
 
 1. **Input Processing**: The system takes in the inputs as defined above.
-2. **Adaptive Minimum Staffing**: The scheduler automatically determines the highest possible minimum staffing level that allows for a feasible schedule. It starts with an initial target of 4 providers and systematically reduces this value until a viable schedule is found.
-3. **Constraint Satisfaction**: The CP-SAT solver applies all hard constraints (like inpatient assignments) while minimizing penalties from soft constraints (like avoiding multiple pediatric calls in a week).
+2. **Model Building**: The system creates decision variables and translates all scheduling rules into mathematical constraints.
+3. **Iterative Solving**: The CP-SAT solver attempts to find a solution, starting with high staffing requirements and automatically reducing them until a feasible schedule is found.
 
 The system treats all submitted leave requests as pre-approved during the scheduling process and automatically identifies the highest achievable minimum staffing level given the leave requests. This provides a clear picture of the "worst-case" staffing scenario if all requested leave were granted. Final leave approval remains at the discretion of department chiefs.
 
@@ -61,7 +63,6 @@ The system treats all submitted leave requests as pre-approved during the schedu
 Some primary care providers at Chinle serve in multiple departments, for example, working clinic in Family Practice while also taking call or clinic shifts in Pediatrics. To manage this complexity, the scheduler is run sequentially by department in a way that accounts for interdependencies:
 
 * **Pediatrics First**: The Pediatrics schedule is generated first. This determines call and clinic assignments for all providers involved in Pediatric coverage, including those who also work in other departments.
-
 * **Internal Medicine and Family Practice Next**: Once the Pediatrics schedule is finalized, it is used to block off corresponding dates for cross-department providers. These constraints are then incorporated into the Internal Medicine and Family Practice scheduling runs to ensure providers aren’t double-booked or overcommitted.
 
 This staged approach ensures that cross-department providers are scheduled consistently and without conflict across the three services. It also reflects the higher coordination demands of Pediatrics, where call coverage is tightly structured and less flexible than general clinic staffing.
@@ -118,9 +119,13 @@ The objective value represents the total penalty from soft constraint violations
 * A provider on pediatric call multiple times in a week 
 * RDO assigned the day after call
 
+## Quality Assurance 
+
+All schedules generated by the automated system serve as first drafts and are thoroughly reviewed by department chiefs and Alberta Begay before implementation. 
+
 ## Usage
 
-A walkthrough of how the Internal Medicine, Family Practice, and Pediatric schedules were created for August 2025 can be found in `notebooks/august_schedule.ipynb`.
+A walkthrough of how the Internal Medicine, Family Practice, and Pediatric schedules were created for August 2025 can be found in `notebooks/august_schedule.ipynb`. The August 2025 clinic and call schedule for all three departments was generated in under 3 seconds, staffing 160+ clinic sessions while respecting 45+ leave requests and inpatient requirements.
 
 ## Directory Architecture
 
