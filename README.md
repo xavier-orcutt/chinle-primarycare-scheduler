@@ -18,15 +18,15 @@ To solve this efficiently, we use [CP-SAT](https://developers.google.com/optimiz
 
 ## How Does It Work? 
 
-CP-SAT is a portfolio solver, meaning it runs multiple diverse algorithms at the same time. Each algorithm has its own strengths and weaknesses, allowing the solver to tackle different aspects of the problem effectively. These algorithms communicate and share information with each other, such as improved solutions or more efficient search spaces, helping the solver converge more quickly on an optimal solution.
+CP-SAT is a portfolio solver, meaning it runs multiple diverse algorithms at the same time. Each algorithm has its own strengths and weaknesses, allowing the solver to tackle different aspects of the problem effectively. These algorithms communicate and share information with each other, such as more efficient search spaces, helping the solver converge more quickly on an optimal solution.
 
 ## Inputs 
 
 The model relies on three main inputs:
 
-1. Calendar – the date range over which the schedule will be built (see `utils/calendar.py`).
-2. Data – inpatient assignments and leave requests (see `data/inpatient.csv` and `data/leave_request.csv`).
-3. Rules – codified constraints that define how providers can be scheduled.
+1. **Calendar** – the date range over which the schedule will be built (see `utils/calendar.py`).
+2. **Data** – inpatient assignments and leave requests (see `data/inpatient.csv` and `data/leave_request.csv`).
+3. **Rules** – codified constraints that define how providers can be scheduled.
 
 ### Rules
 
