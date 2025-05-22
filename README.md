@@ -46,7 +46,7 @@ The constraints are implemented as a combination of:
 
 All constraints are considered simultaneously by CP-SAT during solving. This approach ensures the scheduler can find workable solutions even when competing requirements make perfect solutions impossible. 
 
-## Scheduling Generation
+## Schedule Generation
 
 Each department (Internal Medicine, Family Practice, and Pediatrics) generates its own schedule independently. The schedule for each department is created through these key steps:
 
