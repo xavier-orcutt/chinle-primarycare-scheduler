@@ -546,7 +546,7 @@ def create_peds_schedule(
                 for week in call_weeks:
                     week_num = week[1]
                     call_count = call_sessions[provider][week]
-                    call_data[f'week_{week_num}'] = call_count
+                    call_data[f'week_{week_num+1}'] = call_count
                     total_call += call_count
                 
                 # Add total call
@@ -610,3 +610,287 @@ def create_peds_schedule(
         return None, None, None, solution_status
     
     return best_schedule_df, best_provider_summary_df, best_call_summary_df, best_solution_status
+
+def create_fp_schedule(
+        config_path,
+        leave_requests_path,
+        inpatient_path,
+        peds_schedule_path,
+        start_date,
+        end_date,
+        min_staffing_search = True,
+        initial_min_providers = 4,
+        random_seed = 42):
+    """
+    Creates a schedule for the family practice department.
+    
+    Parameters:
+    ----------
+    config_path : str
+        Path to family practice YAML config file
+
+    leave_requests_path : str
+        Path to the leave requests CSV file
+
+    inpatient_path : str
+        Path to the inpatient assignments CSV file
+
+    peds_schedule_path : str
+        Path to the pediatric schedule CSV file for shared providers
+
+    start_date : date
+        Start date for the schedule. Must be a datetime.date object, e.g., date(2025, 3, 31), no leading zeros. 
+
+    end_date : date
+        End date for the schedule. Must be a datetime.date object, e.g., date(2025, 3, 31), no leading zeros. 
+
+    min_staffing_search : bool
+        If True, iteratively searches for highest feasible min_providers_per_session value
+        
+    initial_min_providers : int
+        Starting value for min_providers_per_session when min_staffing_search is True
+
+    random_seed : int
+        Random seed for the solver
+        
+    Returns:
+    -------
+    tuple
+        (schedule_df, provider_summary_df, solution_status)
+    """
+    logger.info(f"Creating schedule for Family Practice from {start_date} to {end_date}")
+    
+    # Import family practice specific modules
+    from utils.parser import parse_inputs
+    from utils.calendar import generate_clinic_calendar
+    from constraints.family_practice import (
+        create_shift_variables,
+        add_leave_constraints,
+        add_inpatient_block_constraints,
+        add_pediatric_constraints,
+        add_clinic_count_constraints, 
+        add_rdo_constraints,
+        add_min_max_staffing_constraints
+    )
+
+    # Parse all inputs (YAML, CSVs)
+    logger.info("Parsing input files")
+    config, leave_df, inpatient_days_df, inpatient_starts_df = parse_inputs(config_path, 
+                                                                            leave_requests_path, 
+                                                                            inpatient_path)
+    
+    # Load pediatric schedule for shared providers (Powell and Shin)
+    logger.info("Loading pediatric schedule")
+    peds_schedule_df = None
+    if peds_schedule_path:
+        try:
+            peds_schedule_df = pd.read_csv(peds_schedule_path)
+            peds_schedule_df['date'] = pd.to_datetime(peds_schedule_df['date']).dt.date
+            logger.info(f"Successfully loaded pediatric schedule with {len(peds_schedule_df)} rows")
+            
+        except Exception as e:
+            logger.warning(f"Could not load pediatric schedule: {e}. Proceeding without it.")
+
+    # Build calendar
+    logger.info("Building calendar")
+    calendar = generate_clinic_calendar(start_date, 
+                                        end_date, 
+                                        config['clinic_rules'])
+
+    # Store original config for reference
+    original_config = copy.deepcopy(config)
+    
+    # Initialize solution tracking variables
+    best_schedule_df = None
+    best_provider_summary_df = None
+    best_solution_status = None
+    total_solve_time = 0
+    
+    # If min_staffing_search is enabled, iteratively try different min_providers values
+    if min_staffing_search:
+        min_provider_values = list(range(initial_min_providers, -1, -1))
+        logger.info(f"Beginning iterative min_providers search, starting with {initial_min_providers}")
+    else:
+        # Just use the value from the YAML file
+        min_provider_values = [config['clinic_rules'].get('staffing', {}).get('min_providers_per_session', 3)]
+        logger.info(f"Using min_providers={min_provider_values[0]} from config")
+
+   # Try each min_providers value until we find a feasible solution
+    for min_providers in min_provider_values:
+        # Create a copy of the config and update the min_providers value
+        current_config = copy.deepcopy(original_config)
+
+        # Update the min_providers value in the config copy
+        if 'staffing' not in current_config['clinic_rules']:
+            current_config['clinic_rules']['staffing'] = {}
+        
+        current_config['clinic_rules']['staffing']['min_providers_per_session'] = min_providers
+                
+        logger.info(f"Attempting to solve with min_providers_per_session = {min_providers}")
+
+        # Create model and shift variables 
+        model = cp_model.CpModel()
+        shift_vars = create_shift_variables(model, 
+                                            list(current_config['providers'].keys()), 
+                                            calendar)
+        
+        # Initialize objective terms 
+        objective_terms = []
+        
+        # Add leave and inpatient blocking constraints 
+        add_leave_constraints(model, 
+                              shift_vars, 
+                              leave_df)
+        
+        add_inpatient_block_constraints(model, 
+                                        shift_vars, 
+                                        inpatient_starts_df, 
+                                        inpatient_days_df)
+        
+        # Add clinic workload constraints
+        add_pediatric_constraints(model, 
+                                  shift_vars, 
+                                  peds_schedule_df)
+
+        clinic_objective_terms = add_clinic_count_constraints(model, 
+                                                              shift_vars, 
+                                                              current_config['providers'], 
+                                                              inpatient_starts_df,
+                                                              peds_schedule_df)
+        objective_terms.extend(clinic_objective_terms)
+        
+        # Adding random day off (RDO) constraints
+        add_rdo_constraints(model, 
+                            shift_vars, 
+                            leave_df, 
+                            inpatient_days_df, 
+                            current_config['clinic_rules'], 
+                            current_config['providers'],
+                            peds_schedule_df)
+        
+        # Add global clinic max/min staffing constraints
+        add_min_max_staffing_constraints(model, 
+                                         shift_vars, 
+                                         calendar, 
+                                         current_config['clinic_rules'])
+        
+        # Set objective if there are terms to minimize
+        if objective_terms:
+            model.Minimize(sum(objective_terms))
+        
+        # Solve model
+        solver = cp_model.CpSolver()
+        solver.parameters.random_seed = random_seed
+        solver.parameters.max_time_in_seconds = 300  # 5-minute time limit
+        
+        status = solver.Solve(model)
+        solver_wall_time = solver.wall_time
+        total_solve_time += solver_wall_time
+
+        # Process results if solution found
+        if status in [cp_model.OPTIMAL, cp_model.FEASIBLE]:
+            logger.info(f"Found {'optimal' if status == cp_model.OPTIMAL else 'feasible'} solution with min_providers = {min_providers}")
+            
+            # Create a DataFrame to store the schedule
+            schedule_data = []
+            provider_sessions = defaultdict(lambda: defaultdict(int))
+            
+            for day in sorted(calendar.keys()):
+                day_of_week = day.strftime('%A')
+                week_key = (day.year, day.isocalendar()[1])
+                
+                for session in calendar[day]:
+                    scheduled = [
+                        provider for provider in shift_vars
+                        if day in shift_vars[provider]
+                        and session in shift_vars[provider][day]
+                        and solver.Value(shift_vars[provider][day][session]) == 1
+                    ]
+                    
+                    # Update session counts for each provider
+                    for provider in scheduled:
+                        provider_sessions[provider][week_key] += 1
+                    
+                    # Add to schedule data
+                    schedule_data.append({
+                        'date': day,
+                        'day_of_week': day_of_week,
+                        'session': session,
+                        'providers': ','.join(scheduled),
+                        'count': len(scheduled)
+                    })
+            
+            # Convert to DataFrame
+            schedule_df = pd.DataFrame(schedule_data)
+            
+            # Create provider summary DataFrame
+            all_providers = list(current_config['providers'])
+            all_weeks = sorted(set(week for provider_weeks in provider_sessions.values()
+                                 for week in provider_weeks))
+            
+            summary_data = []
+            for provider in all_providers:
+                provider_data = {'provider': provider}
+                total_sessions = 0
+                
+                for week in all_weeks:
+                    week_num = week[1]
+                    sessions = provider_sessions[provider][week]
+                    provider_data[f'week_{week_num}'] = sessions
+                    total_sessions += sessions
+                    
+                provider_data['total_sessions'] = total_sessions
+                summary_data.append(provider_data)
+                
+            provider_summary_df = pd.DataFrame(summary_data)
+            
+            # Create a detailed status dictionary
+            solution_status = {
+                'Status': 'OPTIMAL' if status == cp_model.OPTIMAL else 'FEASIBLE',
+                'Minimum providers per session': min_providers,
+                'Objective value': solver.ObjectiveValue() if objective_terms else None,
+                'Solve time': f'{total_solve_time:3f} seconds',
+                'Branches': solver.NumBranches(),
+                'Conflicts': solver.NumConflicts()
+            }
+            
+            # Store best solution
+            best_schedule_df = schedule_df
+            best_provider_summary_df = provider_summary_df
+            best_solution_status = solution_status
+            
+            # If we're searching for min_providers and found a solution, we're done
+            # (since we start with highest value and work downward)
+            if min_staffing_search:
+                logger.info(f"Successfully found solution with highest possible min_providers = {min_providers}")
+                break
+        else:
+            logger.warning(f"No feasible solution found with min_providers = {min_providers}")
+            
+            # If we're not doing a search (using fixed value from config), return immediately
+            if not min_staffing_search:
+                solution_status = {
+                    'status': 'infeasible' if status == cp_model.INFEASIBLE else 
+                             ('model_invalid' if status == cp_model.MODEL_INVALID else
+                              ('unknown' if status == cp_model.UNKNOWN else 'error')),
+                    'min_providers_per_session': min_providers,
+                    'is_optimal': False,
+                    'solve_time': solver_wall_time,
+                    'total_solve_time': total_solve_time,
+                    'branches': solver.NumBranches(),
+                    'conflicts': solver.NumConflicts()
+                }
+                return None, None, solution_status
+    
+    # Check if any solution was found
+    if best_schedule_df is None:
+        logger.error("No feasible solution found with any min_providers value")
+        solution_status = {
+            'status': 'infeasible',
+            'min_providers_tried': min_provider_values,
+            'is_optimal': False,
+            'total_solve_time': total_solve_time
+        }
+        return None, None, solution_status
+    
+    return best_schedule_df, best_provider_summary_df, best_solution_status
