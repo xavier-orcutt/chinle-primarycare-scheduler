@@ -10,7 +10,7 @@ Consider a 5-day week with 9 total clinic sessions. If 5 providers are available
 
 $${\binom{5}{3}}^9 = 10^9 = 1,000,000,000$$
 
-Even after applying just a single constraint, limiting each provider to a maximum of 6 sessions per week, a conservative estimate suggests that 10–20% of these combinations remain feasible, resulting in roughly 100–200 million valid schedules. When scaled tacross multiple departments and multiple months, the size of the scheduling space becomes astronomically large.
+Even after applying just a single constraint, limiting each provider to a maximum of 6 sessions per week, a conservative estimate suggests that 10–20% of these combinations remain feasible, resulting in roughly 100–200 million valid schedules. When scaled dacross multiple departments and multiple months, the size of the scheduling space becomes astronomically large.
 
 The real complexity, however, doesn’t lie in the sheer number of possible schedules, but in how tightly interwoven constraints like leave, RDOs, staffing minimums and maximums, and per-provider clinic caps interact to restrict the feasible set.
 
@@ -26,7 +26,7 @@ The scheduling software converts the primary care department clinic rules into c
 ### 2. The Optimization Engine (CP-SAT)
 The scheduling software uses CP-SAT as its "brain" for solving the scheduling puzzle. CP-SAT is able to try millions of scheduling combinations in seconds, remember all rules, and find the best solution among all the valid possibilities. 
 
-## Inputs 
+## Scheduler Inputs 
 
 The scheduler relies on three main inputs:
 
@@ -48,7 +48,7 @@ All constraints are considered simultaneously by CP-SAT during solving. This app
 
 ## Schedule Generation
 
-Each department (Internal Medicine, Family Practice, and Pediatrics) generates its own schedule independently. The schedule for each department is created through these key steps:
+Each department (Internal Medicine, Family Practice, and Pediatrics) generates its own schedule. The schedule for each department is created through these key steps:
 
 1. **Input Processing**: The system takes in the inputs as defined above.
 2. **Adaptive Minimum Staffing**: The scheduler automatically determines the highest possible minimum staffing level that allows for a feasible schedule. It starts with an initial target of 4 providers and systematically reduces this value until a viable schedule is found.
@@ -56,7 +56,7 @@ Each department (Internal Medicine, Family Practice, and Pediatrics) generates i
 
 The system treats all submitted leave requests as pre-approved during the scheduling process and automatically identifies the highest achievable minimum staffing level given the leave requests. This provides a clear picture of the "worst-case" staffing scenario if all requested leave were granted. Final leave approval remains at the discretion of department chiefs.
 
-## Cross-Department Scheduling 
+### Cross-Department Scheduling 
 
 Some primary care providers at Chinle serve in multiple departments, for example, working clinic in Family Practice while also taking call or clinic shifts in Pediatrics. To manage this complexity, the scheduler is run sequentially by department in a way that accounts for interdependencies:
 
@@ -66,7 +66,7 @@ Some primary care providers at Chinle serve in multiple departments, for example
 
 This staged approach ensures that cross-department providers are scheduled consistently and without conflict across the three services. It also reflects the higher coordination demands of Pediatrics, where call coverage is tightly structured and less flexible than general clinic staffing.
 
-## Interpreting the Scheduler Output
+## Scheduler Output
 
 The scheduler produces a binary output for each provider, day, and session:
 
