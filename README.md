@@ -24,9 +24,9 @@ CP-SAT is a portfolio solver, meaning it runs multiple diverse algorithms at the
 
 The model relies on three main inputs:
 
-1. Calendar – the date range over which the schedule will be built (see `utils/calendar.py`)
-2. Data – inpatient assignments and leave requests (see `data/inpatient.csv` and `data/leave_request.csv`)
-3. Rules – codified constraints that define how providers can be scheduled
+1. Calendar – the date range over which the schedule will be built (see `utils/calendar.py`).
+2. Data – inpatient assignments and leave requests (see `data/inpatient.csv` and `data/leave_request.csv`).
+3. Rules – codified constraints that define how providers can be scheduled.
 
 ### Rules
 
@@ -35,8 +35,8 @@ The rules section deserves particular attention as it's the heart of the schedul
 General clinic and provider-specific rules are defined in the `config` folder and are imported and codified as constraints for the model in `constraints`.
 
 The constraints are implemented as a combination of:
-* **Hard constraints** that cannot be violated (e.g., providers cannot work clinic during inpatient)
-* **Soft constraints** with penalties that guide the optimizer toward preferable solutions while maintaining flexibility when strict adherence isn't possible (e.g., ensuring that providers work as close as possible to their designated weekly clinic amount)
+* **Hard constraints** that cannot be violated (e.g., providers cannot work clinic during inpatient).
+* **Soft constraints** with penalties that guide the optimizer toward preferable solutions while maintaining flexibility when strict adherence isn't possible (e.g., ensuring that providers work as close as possible to their designated weekly clinic amount).
 
 All constraints are considered simultaneously by CP-SAT during solving. This approach ensures the scheduler can find workable solutions even when competing requirements make perfect solutions impossible. 
 
@@ -55,7 +55,7 @@ Some primary care providers at Chinle serve in multiple departments, for example
 
 * **Pediatrics First**: The Pediatrics schedule is generated first. This determines call and clinic assignments for all providers involved in Pediatric coverage, including those who also work in other departments.
 
-* **Internal Medicine and Family Practice Next**: Once the Pediatrics schedule is finalized, it is used to block off corresponding dates for dual-role providers. These constraints are then incorporated into the Internal Medicine and Family Practice scheduling runs to ensure providers aren’t double-booked or overcommitted.
+* **Internal Medicine and Family Practice Next**: Once the Pediatrics schedule is finalized, it is used to block off corresponding dates for cross-department providers. These constraints are then incorporated into the Internal Medicine and Family Practice scheduling runs to ensure providers aren’t double-booked or overcommitted.
 
 This staged approach ensures that cross-department providers are scheduled consistently and without conflict across the three services. It also reflects the higher coordination demands of Pediatrics, where call coverage is tightly structured and less flexible than general clinic staffing.
 
@@ -110,7 +110,7 @@ The objective value represents the total penalty from soft constraint violations
 
 ## Usage
 
-A walkthrough of how the internal medicine, family practice, and pediatric schedules were created for August 2025 can be found in `notebooks/august_schedule.ipynb`.
+A walkthrough of how the Internal Medicine, Family Practice, and Pediatric schedules were created for August 2025 can be found in `notebooks/august_schedule.ipynb`.
 
 ## Directory Architecture
 
