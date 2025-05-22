@@ -10,7 +10,7 @@ Consider a 5-day week with 9 total clinic sessions. If 5 providers are available
 
 $${\binom{5}{3}}^9 = 10^9 = 1,000,000,000$$
 
-Even after applying just a single constraint, limiting each provider to a maximum of 6 sessions per week, a conservative estimate suggests that 10–20% of these combinations remain feasible, resulting in roughly 100–200 million valid schedules. When scaled across multiple departments and multiple months, the size of the scheduling space becomes astronomically large.
+Even after applying just a single constraint, limiting each provider to a maximum of 6 sessions per week, a conservative estimate suggests that 10–20% of these combinations remain feasible, resulting in roughly 100–200 million valid schedules. When scaled tacross multiple departments and multiple months, the size of the scheduling space becomes astronomically large.
 
 The real complexity, however, doesn’t lie in the sheer number of possible schedules, but in how tightly interwoven constraints like leave, RDOs, staffing minimums and maximums, and per-provider clinic caps interact to restrict the feasible set.
 
