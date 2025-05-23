@@ -150,7 +150,7 @@ A walkthrough of how the Internal Medicine, Family Practice, and Pediatric sched
 │   └── call_rules.pdf     
 ├── engine/                        # Entry point for running the scheduler
 │   └── engine.py
-├── notebooks/                     # Collection of Jupyter notebooks
+├── notebooks/                     # Jupyter notebook for running the scheduler 
 │   └── august_schedule.ipynb
 ├── output/                        # Schedule output for August by department saved as CSV and HTML files
 │   └── august/
