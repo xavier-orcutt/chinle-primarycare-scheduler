@@ -322,7 +322,7 @@ def create_peds_schedule(
     # Import pediatric specific modules
     from utils.parser import parse_inputs
     from utils.calendar import generate_pediatric_calendar
-    from constraints.pediatric import (
+    from constraints.pediatrics import (
         create_shift_variables,
         add_leave_constraints,
         add_inpatient_block_constraints,
