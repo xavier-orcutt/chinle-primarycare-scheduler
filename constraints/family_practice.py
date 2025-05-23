@@ -140,7 +140,7 @@ def add_pediatric_constraints(model,
     # Process all pediatric assignments (both call and clinic)
     for _, row in peds_schedule_df.iterrows():
         date = row['date']
-        session = row['sessions']
+        session = row['session']
         providers = row['providers'].split(',') if isinstance(row['providers'], str) else []
         
         for provider in providers:
@@ -204,7 +204,7 @@ def add_clinic_count_constraints(model,
         # Process pediatric schedule to track clinic sessions (not call)
         for _, row in peds_schedule_df.iterrows():
             date = row['date']
-            session = row['sessions']
+            session = row['session']
             providers = row['providers'].split(',') if isinstance(row['providers'], str) else []
             
             # Only count morning and afternoon clinic sessions (not call)
@@ -278,6 +278,108 @@ def add_clinic_count_constraints(model,
     # Return objective terms to be added to the model's objective
     return objective_terms
 
+def add_fracture_clinic_constraints(model,
+                                    shift_vars,
+                                    calendar,
+                                    provider_config):
+    """
+    Adds soft constraints to ensure fracture clinic coverage on Wednesdays.
+    
+    Penalty is applied when neither fracture clinic provider is scheduled for 
+    both morning AND afternoon sessions on Wednesdays.
+    
+    Parameters:
+    ----------
+    model : cp_model.CpModel
+        OR-Tools model.
+    
+    shift_vars : dict
+        Nested dict of binary decision variables: shift_vars[provider][date][session].
+    
+    calendar : dict
+        Dictionary from generate_clinic_calendar().
+        Keys are datetime.date, values are lists of valid sessions.
+    
+    provider_config : dict
+        Parsed provider-level configuration with fracture_clinic flags.
+    
+    Returns:
+    -------
+    list
+        List of penalty variables to be added to the objective function.
+    """
+    # Initialize penalty terms
+    objective_terms = []
+    
+    # Identify fracture clinic providers
+    fracture_providers = [
+        provider for provider, config in provider_config.items()
+        if config.get('fracture_clinic', False)
+    ]
+    
+    if len(fracture_providers) < 2:
+        # If we don't have 2 fracture providers, skip this constraint
+        return objective_terms
+    
+    # Find all Wednesdays in the calendar
+    wednesdays = [
+        date for date in calendar.keys()
+        if date.strftime('%A') == 'Wednesday'
+    ]
+    
+    for wednesday in wednesdays:
+        # Check if this Wednesday has both morning and afternoon sessions
+        if ('morning' not in calendar[wednesday] or 
+            'afternoon' not in calendar[wednesday]):
+            continue
+        
+        # Create variables for each fracture provider working full day
+        provider_full_day_vars = []
+        
+        for provider in fracture_providers:
+            # Skip if provider doesn't have shift variables for this day
+            if (provider not in shift_vars or 
+                wednesday not in shift_vars[provider]):
+                continue
+            
+            # Check if both morning and afternoon sessions exist for this provider
+            if ('morning' not in shift_vars[provider][wednesday] or
+                'afternoon' not in shift_vars[provider][wednesday]):
+                continue
+            
+            # Create variable indicating this provider works full day
+            provider_full_day = model.NewBoolVar(
+                f"{provider}_full_day_{wednesday.isoformat()}"
+            )
+            
+            # Get morning and afternoon variables
+            morning_var = shift_vars[provider][wednesday]['morning']
+            afternoon_var = shift_vars[provider][wednesday]['afternoon']
+            
+            # provider_full_day is 1 if and only if both morning and afternoon are 1
+            model.AddBoolAnd([morning_var, afternoon_var]).OnlyEnforceIf(provider_full_day)
+            model.AddBoolOr([morning_var.Not(), afternoon_var.Not()]).OnlyEnforceIf(provider_full_day.Not())
+            
+            provider_full_day_vars.append(provider_full_day)
+        
+        # If we have at least one provider who could work full day
+        if provider_full_day_vars:
+            # Create penalty variable for this Wednesday
+            penalty_var = model.NewBoolVar(f"fracture_penalty_{wednesday.isoformat()}")
+            
+            # At least one provider should work full day
+            at_least_one_full_day = model.NewBoolVar(f"at_least_one_full_day_{wednesday.isoformat()}")
+            model.AddBoolOr(provider_full_day_vars).OnlyEnforceIf(at_least_one_full_day)
+            model.AddBoolAnd([var.Not() for var in provider_full_day_vars]).OnlyEnforceIf(at_least_one_full_day.Not())
+            
+            # Penalty is 1 when no provider works full day
+            model.Add(penalty_var == at_least_one_full_day.Not())
+            
+            # Add to penalty terms with weight of 100
+            objective_terms.append(penalty_var * 100)
+    
+    return objective_terms
+
 def add_rdo_constraints(model, 
                         shift_vars, 
                         leave_df, 
@@ -342,7 +444,7 @@ def add_rdo_constraints(model,
         # Process pediatric schedule to track both call and clinic assignments
         for _, row in peds_schedule_df.iterrows():
             date = row['date']
-            session = row['sessions']
+            session = row['session']
             providers_str = row['providers'] if not pd.isna(row['providers']) else ''
             providers = providers_str.split(',') if providers_str else []
             
@@ -478,7 +580,7 @@ def add_pediatric_call_constraints(model,
     # Process all pediatric assignments (both call and clinic)
     for _, row in peds_schedule_df.iterrows():
         date = row['date']
-        session = row['sessions']
+        session = row['session']
         providers_str = row['providers'] if not pd.isna(row['providers']) else ''
         providers = providers_str.split(',') if providers_str else []
         
