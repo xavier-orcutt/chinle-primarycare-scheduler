@@ -289,7 +289,7 @@ def create_peds_schedule(
     Parameters:
     ----------
     config_path : str
-        Path to pediatric YAML config file
+        Path to pediatrics YAML config file
 
     leave_requests_path : str
         Path to the leave requests CSV file
@@ -399,11 +399,11 @@ def create_peds_schedule(
         # Add call constraint 
         call_objective_terms = add_call_constraints(model, 
                                                     shift_vars, 
-                                                    calendar, 
                                                     leave_df, 
                                                     inpatient_days_df, 
                                                     inpatient_starts_df, 
-                                                    config['clinic_rules'])
+                                                    current_config['clinic_rules'],
+                                                    current_config['providers'])
         
         objective_terms.extend(call_objective_terms)
         
@@ -416,14 +416,14 @@ def create_peds_schedule(
                                                 shift_vars, 
                                                 leave_df, 
                                                 inpatient_days_df, 
-                                                config['clinic_rules'], 
-                                                config['providers'])
+                                                current_config['clinic_rules'], 
+                                                current_config['providers'])
         
         objective_terms.extend(rdo_penalty_terms) 
 
         clinic_objective_terms = add_clinic_count_constraints(model, 
                                                               shift_vars, 
-                                                              config['providers'], 
+                                                              current_config['providers'], 
                                                               inpatient_starts_df)
         
         objective_terms.extend(clinic_objective_terms)
@@ -499,14 +499,14 @@ def create_peds_schedule(
                     schedule_data.append({
                         'date': day,
                         'day_of_week': day_of_week,
-                        'sessions': session,
+                        'session': session,
                         'providers': ','.join(scheduled),
                         'count': len(scheduled)
                     })
             
             # Convert to DataFrames
             schedule_df = pd.DataFrame(schedule_data)
-            schedule_df.loc[schedule_df['sessions'] == 'call', 'count'] = np.nan
+            schedule_df.loc[schedule_df['session'] == 'call', 'count'] = np.nan
             
             # Create provider summary DataFrame - with separate clinic and call sections
             all_providers = list(current_config['providers'])
@@ -556,7 +556,7 @@ def create_peds_schedule(
             call_summary_df = pd.DataFrame(call_summary_data)
             
             # Verify the actual minimum staffing level achieved for clinic sessions
-            clinic_only_df = schedule_df[schedule_df['sessions'].isin(['morning', 'afternoon'])]
+            clinic_only_df = schedule_df[schedule_df['session'].isin(['morning', 'afternoon'])]
             min_staff_achieved = clinic_only_df['count'].min() if not clinic_only_df.empty else 0
             
             # Create a detailed status dictionary
@@ -668,7 +668,8 @@ def create_fp_schedule(
         add_leave_constraints,
         add_inpatient_block_constraints,
         add_pediatric_constraints,
-        add_clinic_count_constraints, 
+        add_clinic_count_constraints,
+        add_fracture_clinic_constraints, 
         add_rdo_constraints,
         add_min_max_staffing_constraints
     )
@@ -758,6 +759,14 @@ def create_fp_schedule(
                                                               inpatient_starts_df,
                                                               peds_schedule_df)
         objective_terms.extend(clinic_objective_terms)
+
+        # Add fracture clinic constraints (soft)
+        fracture_clinic_objective_terms = add_fracture_clinic_constraints(model,
+                                                                          shift_vars,
+                                                                          calendar,
+                                                                          current_config['providers'])
+        
+        objective_terms.extend(fracture_clinic_objective_terms)
         
         # Adding random day off (RDO) constraints
         add_rdo_constraints(model, 
