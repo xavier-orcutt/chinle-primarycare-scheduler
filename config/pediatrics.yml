@@ -82,6 +82,7 @@ providers:
     role: MD
     max_clinics_per_week: 0   # Family doctor who takes call but does clinics in family practice
     needs_rdo: false          # RDO will be assigned in family practice scheduler
+    fracture_clinic: true     # Does fracture clinic on Wednesdays in family practice impacting Tuesday call 
 
   Shin: 
     role: MD

@@ -69,10 +69,12 @@ providers:
   Powell:
     role: MD
     max_clinics_per_week: 5
+    fracture_clinic: true
   
   Salay:
     role: MD
     max_clinics_per_week: 6
+    fracture_clinic: true
   
   Shin:
     role: MD
