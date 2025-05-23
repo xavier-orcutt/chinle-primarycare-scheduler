@@ -12,7 +12,7 @@ $${\binom{5}{3}}^9 = 10^9 = 1,000,000,000$$
 
 Even after applying just a single constraint, limiting each provider to a maximum of 6 sessions per week, a conservative estimate suggests that 10–20% of these combinations remain feasible, resulting in roughly 100–200 million valid schedules. When scaled dacross multiple departments and multiple months, the size of the scheduling space becomes astronomically large.
 
-The real complexity, however, doesn’t lie in the sheer number of possible schedules, but in how tightly interwoven constraints like leave, RDOs, staffing minimums and maximums, and per-provider clinic caps interact to restrict the feasible set.
+The real complexity, however, doesn’t lie in the sheer number of possible schedules, but in how tightly interwoven constraints like leave, staffing minimums and maximums, and per-provider clinic caps interact to restrict the feasible set.
 
 To solve this efficiently, the scheduler uses [CP-SAT](https://developers.google.com/optimization/cp), an open-source solver developed by Google that’s designed for constraint satisfaction problems. CP-SAT is particularly well-suited to scheduling problems like ours because it can efficiently handle both hard constraints and soft preferences. 
 
@@ -24,7 +24,7 @@ The Chinle Primary Care Scheduler is built in two layers:
 The scheduling software converts the primary care department clinic rules into computer logic. It accounts for each provider’s schedule preferences, clinic workload limits, time off, inpatient assignments, and federal holidays.
 
 ### 2. The Optimization Engine (CP-SAT)
-The scheduling software uses CP-SAT as its "brain" for solving the scheduling puzzle. CP-SAT is able to try millions of scheduling combinations in seconds, remember all rules, and find the best solution among all the valid possibilities. 
+The scheduling software uses CP-SAT for solving the scheduling puzzle. CP-SAT is able to try millions of scheduling combinations in seconds, remember all rules, and find the best solution among all the valid possibilities. 
 
 ## Scheduler Inputs 
 
@@ -36,7 +36,7 @@ The scheduler relies on three main inputs:
 
 ### Rules
 
-The rules section deserves particular attention as it's the heart of the scheduling system. The scheduler enforces the core rules through a three-step process:
+The scheduler enforces the core rules through a three-step process:
 
 1. **Plain-English Documentation** - Core scheduling policies are documented in `docs/clinic_rules.pdf` and `docs/call_rules.pdf`. 
 2. **Configuration Files** - These policies are codified in human-readable YAML files (`config/` folder) containing both clinic-level rules (staffing minimums, holiday dates) and provider-specific rules (workload limits, RDO preferences). This structure makes it easy to adjust existing constraints without programming knowledge, add new providers or modify existing provider parameters, and maintain separate rule sets for each department.
@@ -78,7 +78,7 @@ This binary decision matrix is then translated into user-friendly outputs which 
 
 ### Calendar 
 
-An HTML calendar is generated for each department using the scheudle dataframe. 
+An HTML calendar is generated for each department using the schedule dataframe. 
 
 ### Schedule Dataframe
 
