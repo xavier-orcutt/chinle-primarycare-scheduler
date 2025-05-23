@@ -52,8 +52,8 @@ The rules section deserves particular attention as it's the heart of the schedul
 
 Each department (Internal Medicine, Family Practice, and Pediatrics) generates its own schedule. The schedule for each department is created through these key steps:
 
-1. **Input Processing**: The system takes in the inputs as defined above.
-2. **Model Building**: The system creates decision variables and translates all scheduling rules into mathematical constraints.
+1. **Input Processing**: The scheduler takes in the inputs as defined above.
+2. **Model Building**: It creates decision variables and translates all scheduling rules into mathematical constraints.
 3. **Iterative Solving**: The CP-SAT solver attempts to find a solution, starting with high staffing requirements and automatically reducing them until a feasible schedule is found.
 
 The system treats all submitted leave requests as pre-approved during the scheduling process and automatically identifies the highest achievable minimum staffing level given the leave requests. This provides a clear picture of the "worst-case" staffing scenario if all requested leave were granted. Final leave approval remains at the discretion of department chiefs.
@@ -76,9 +76,13 @@ The scheduler produces a binary output for each provider, day, and session:
 
 This binary decision matrix is then translated into user-friendly outputs which provide detailed information about the quality of the scheduling solution.
 
+### Calendar 
+
+An HTML calendar is generated for each department using the scheudle dataframe. 
+
 ### Schedule Dataframe
 
-The primary output is the complete schedule showing which providers are assigned to each session:
+The primary dataframe output is the complete schedule showing which providers are assigned to each session:
 
 |      date     | day_of_week |  session  |      providers      | count |
 |---------------|-------------|-----------|---------------------|-------|
@@ -148,13 +152,25 @@ A walkthrough of how the Internal Medicine, Family Practice, and Pediatric sched
 │   └── engine.py
 ├── notebooks/                     # Collection of Jupyter notebooks
 │   └── august_schedule.ipynb
-├── output/                        # Schedule outputs saved as CSV files
-│   ├── fp_schedule_df.csv
-│   ├── im_schedule_df.csv
-│   └── peds_schedule_df.csv
+├── output/                        # Schedule output for August by department saved as CSV and HTML files
+│   └── august/
+│       ├── fp
+│           ├── calendar.html
+│           ├── provider_summary_df.csv
+│           └── schedule_df.csv
+│       ├── im
+│           ├── calendar.html
+│           ├── provider_summary_df.csv
+│           └── schedule_df.csv
+│       └── peds
+│           ├── calendar.html
+│           ├── call_summary_df.csv 
+│           ├── provider_summary_df.csv
+│           └── schedule_df.csv
 └── utils/                         # Input parsing and calendar creation
-    ├── parser.py
-    └── calendar.py
+    ├── calendar.py
+    ├── calendar_formatter.py
+    └── parser.py
 ```
 
 ## Requirements
