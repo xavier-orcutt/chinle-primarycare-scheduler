@@ -137,11 +137,11 @@ A walkthrough of how the Internal Medicine, Family Practice, and Pediatric sched
 ├── config/                        # Clinic and provider rules 
 │   ├── family_practice.yml
 │   ├── internal_medicine.yml
-│   └── pediatric.yml
+│   └── pediatrics.yml
 ├── constraints/                   # Scheduling rules and constraint logic
 │   ├── family_practice.py
-│   ├── internal_medicine.yml
-│   └── pediatric.py
+│   ├── internal_medicine.py
+│   └── pediatrics.py
 ├── data/                          # Input data
 │   ├── inpatient.csv
 │   └── leave_requests.csv
@@ -154,15 +154,15 @@ A walkthrough of how the Internal Medicine, Family Practice, and Pediatric sched
 │   └── august_schedule.ipynb
 ├── output/                        # Schedule output for August by department saved as CSV and HTML files
 │   └── august/
-│       ├── family_practice
-│           ├── calendar.html
-│           ├── provider_summary_df.csv
-│           └── schedule_df.csv
-│       ├── internal_medicine
-│           ├── calendar.html
-│           ├── provider_summary_df.csv
-│           └── schedule_df.csv
-│       └── pediatric
+│       ├── family_practice/
+│       │   ├── calendar.html
+│       │   ├── provider_summary_df.csv
+│       │   └── schedule_df.csv
+│       ├── internal_medicine/
+│       │   ├── calendar.html
+│       │   ├── provider_summary_df.csv
+│       │   └── schedule_df.csv
+│       └── pediatrics/
 │           ├── calendar.html
 │           ├── call_summary_df.csv 
 │           ├── provider_summary_df.csv
