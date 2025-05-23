@@ -4,48 +4,37 @@ from datetime import date, timedelta
 from collections import defaultdict
 import os
 from pathlib import Path
+import yaml
 
 def format_schedule_as_calendar(schedule_df, 
-                                start_date=None, 
-                                end_date=None,
-                                department='internal_medicine'):
+                                config_path = None,
+                                leave_requests_path = None,
+                                inpatient_path = None):
     """
     Converts a schedule DataFrame into a calendar format suitable for display.
     
     Parameters:
     ----------
     schedule_df : pd.DataFrame
-        Schedule DataFrame with columns ['date', 'day_of_week', 'session'/'sessions', 'providers', 'count'].
-        For pediatrics, may have 'sessions' instead of 'session'.
+        Schedule DataFrame with columns ['date', 'day_of_week', 'session', 'providers', 'count'].
+
+    config_path : str
+        Path to department YAML config file
     
-    start_date : datetime.date, optional
-        Start date for calendar. If None, uses min date from schedule_df.
-    
-    end_date : datetime.date, optional
-        End date for calendar. If None, uses max date from schedule_df.
-        
-    department : str
-        Department type ('internal_medicine', 'pediatrics', 'family_practice').
-        Affects how sessions are grouped and displayed.
+    leave_requests_path : str
+        Path to the leave requests CSV file
+
+    inpatient_path : str
+        Path to the inpatient assignments CSV file
     
     Returns:
     -------
     dict
         Calendar data organized by month and week for easy display.
-    """
-    # Debug: Print DataFrame info
+    """    
     if schedule_df.empty:
         print("Warning: DataFrame is empty")
         return {'months': []}
-    
-    # Handle different column names between departments
-    session_col = None
-    if 'sessions' in schedule_df.columns:
-        session_col = 'sessions'
-    elif 'session' in schedule_df.columns:
-        session_col = 'session'
-    else:
-        raise ValueError(f"Expected 'session' or 'sessions' column. Found: {list(schedule_df.columns)}")
     
     # Ensure date column exists
     if 'date' not in schedule_df.columns:
@@ -54,7 +43,7 @@ def format_schedule_as_calendar(schedule_df,
     # Convert date column to datetime if it's not already
     try:
         if not pd.api.types.is_datetime64_any_dtype(schedule_df['date']):
-            print("Converting date column to datetime.")
+            print("Converting date column to datetime...")
             schedule_dates = pd.to_datetime(schedule_df['date']).dt.date
         else:
             schedule_dates = pd.to_datetime(schedule_df['date']).dt.date
@@ -63,18 +52,15 @@ def format_schedule_as_calendar(schedule_df,
         print(f"Sample date values: {schedule_df['date'].head()}")
         raise
         
-    print(f"Date range: {schedule_dates.min()} to {schedule_dates.max()}")
-    
-    # Determine date range
-    if start_date is None:
-        start_date = schedule_dates.min()
-    if end_date is None:
-        end_date = schedule_dates.max()
-    
-    print(f"Calendar range: {start_date} to {end_date}")
+    start_date = schedule_dates.min()
+    end_date = schedule_dates.max()
+    print(f"Calendar range: {schedule_dates.min()} to {schedule_dates.max()}")
     
     # Group schedule data by date and session
     schedule_by_date = defaultdict(lambda: defaultdict(list))
+    session_col = 'session'
+    
+    print(f"Processing {len(schedule_df)} schedule entries...")
     
     for idx, row in schedule_df.iterrows():
         try:
@@ -104,6 +90,77 @@ def format_schedule_as_calendar(schedule_df,
             continue
     
     print(f"Processed schedule data for {len(schedule_by_date)} unique dates")
+    
+    # Get department providers for leave and inpatient assignments 
+    department_providers = None
+    if config_path:
+        with open(config_path, 'r') as f:
+            config = yaml.safe_load(f)
+        department_providers = list(config['providers'].keys())
+
+    # Process leave requests if provided
+    leave_by_date = defaultdict(list)
+    if leave_requests_path and department_providers:
+        try:
+            leave_df = pd.read_csv(Path(leave_requests_path))
+            leave_df = leave_df.query('provider in @department_providers')
+            print(f"Filtered to {len(leave_df)} leave requests for this department")
+
+            if not leave_df.empty:
+                print(f"Processing {len(leave_df)} leave requests...")
+                
+                for idx, row in leave_df.iterrows():
+                    try:
+                        # Convert leave date
+                        if pd.api.types.is_datetime64_any_dtype(leave_df['date']):
+                            leave_date = pd.to_datetime(row['date']).date()
+                        else:
+                            leave_date = pd.to_datetime(row['date']).date()
+                        
+                        provider = row['provider'].strip()
+                        leave_by_date[leave_date].append(provider)
+                        
+                    except Exception as e:
+                        print(f"Error processing leave row {idx}: {e}")
+                        continue
+                
+                print(f"Processed leave requests for {len(leave_by_date)} unique dates")
+        except Exception as e:
+            print(f"Error processing leave requests: {e}")
+    
+    # Process inpatient assignments if provided
+    inpatient_by_date = defaultdict(list)
+    if inpatient_path and department_providers:
+        try:
+            inpatient_df = pd.read_csv(Path(inpatient_path))
+            inpatient_df = inpatient_df.query('provider in @department_providers')
+            print(f"Filtered to {len(inpatient_df)} inpatient assignments for this department")
+
+            if not inpatient_df.empty:
+                print(f"Processing {len(inpatient_df)} inpatient assignments...")
+                
+                for idx, row in inpatient_df.iterrows():
+                    try:
+                        # Convert start date
+                        if pd.api.types.is_datetime64_any_dtype(inpatient_df['start_date']):
+                            start_date_obj = pd.to_datetime(row['start_date']).date()
+                        else:
+                            start_date_obj = pd.to_datetime(row['start_date']).date()
+                        
+                        provider = row['provider'].strip()
+                        
+                        # Add provider to all 7 days of inpatient week
+                        for day_offset in range(7):
+                            inpatient_date = start_date_obj + timedelta(days=day_offset)
+                            inpatient_by_date[inpatient_date].append(provider)
+                        
+                    except Exception as e:
+                        print(f"Error processing inpatient row {idx}: {e}")
+                        continue
+                
+                print(f"Processed inpatient assignments for {len(inpatient_by_date)} unique dates")
+        except Exception as e:
+            print(f"Error processing inpatient assignments: {e}")
 
     # Generate calendar structure
     months = []
@@ -136,6 +193,14 @@ def format_schedule_as_calendar(schedule_df,
             if week_date in schedule_by_date:
                 day_sessions = dict(schedule_by_date[week_date])
             
+            # Add leave requests for this date
+            if week_date in leave_by_date:
+                day_sessions['leave'] = leave_by_date[week_date]
+
+            # Add inpatient assignments for this date
+            if week_date in inpatient_by_date:
+                day_sessions['inpatient'] = inpatient_by_date[week_date]
+            
             day_data = {
                 'date': week_date,
                 'day': week_date.day,
@@ -164,9 +229,12 @@ def format_schedule_as_calendar(schedule_df,
     return {'months': months}
 
 def create_html_calendar(schedule_df, 
-                         title = 'Calendar',
-                         output_dir = '.../output',
-                         filename = None):
+                         config_path = None,
+                         leave_requests_path = None,
+                         inpatient_path = None, 
+                         title = 'calendar',
+                         output_dir = ".../output",
+                         filename = 'calendar.html'):
     """
     Create HTML calendar and save it to a designated directory.
     Simplified function for easy use in Jupyter notebooks.
@@ -175,7 +243,16 @@ def create_html_calendar(schedule_df,
     ----------
     schedule_df : pd.DataFrame
         Schedule DataFrame with columns ['date', 'session'/'sessions', 'providers']
+
+    config_path : str
+        Path to department YAML config file
     
+    leave_requests_path : str
+        Path to the leave requests CSV file
+
+    inpatient_path : str
+        Path to the inpatient assignments CSV file
+        
     title : str
         Title for the HTML calendar
         
@@ -194,34 +271,15 @@ def create_html_calendar(schedule_df,
     output_path = Path(output_dir)
     output_path.mkdir(exist_ok=True)
     
-    print(f"Creating HTML calendar from DataFrame with {len(schedule_df)} entries...")
-    
-    # Generate calendar data
-    calendar_data = format_schedule_as_calendar(schedule_df)
+    # Generate calendar data with leave information
+    calendar_data = format_schedule_as_calendar(schedule_df = schedule_df, 
+                                                config_path = config_path,
+                                                leave_requests_path = leave_requests_path,
+                                                inpatient_path = inpatient_path)
     
     if not calendar_data or not calendar_data['months']:
         print("Warning: No calendar data generated")
         return None
-    
-    # Auto-generate filename if not provided
-    if filename is None:
-        # Get date range for filename
-        dates = pd.to_datetime(schedule_df['date']).dt.date
-        start_date = dates.min()
-        end_date = dates.max()
-        
-        # Clean title for filename
-        clean_title = "".join(c for c in title if c.isalnum() or c in (' ', '-', '_')).rstrip()
-        clean_title = clean_title.replace(' ', '_')
-        
-        if start_date.year == end_date.year and start_date.month == end_date.month:
-            # Single month
-            date_str = start_date.strftime('%Y_%m_%B')
-        else:
-            # Multiple months
-            date_str = f"{start_date.strftime('%Y_%m')}_to_{end_date.strftime('%Y_%m')}"
-        
-        filename = f"{clean_title}_{date_str}.html"
     
     # Ensure filename ends with .html
     if not filename.endswith('.html'):
@@ -248,6 +306,50 @@ def create_html_calendar(schedule_df,
             background-color: white;
             border-radius: 8px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }}
+        .legend {{
+            background-color: white;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }}
+        .legend-items {{
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 8px;
+        }}
+        .legend-item {{
+            display: flex;
+            align-items: center;
+            font-size: 13px;
+        }}
+        .legend-color {{
+            width: 16px;
+            height: 16px;
+            border-radius: 2px;
+            margin-right: 8px;
+            border-left: 3px solid;
+        }}
+        .legend-color.morning {{
+            background-color: #e8f4fd;
+            border-left-color: #2196f3;
+        }}
+        .legend-color.afternoon {{
+            background-color: #fff8e1;
+            border-left-color: #ff9800;
+        }}
+        .legend-color.call {{
+            background-color: #ffebee;
+            border-left-color: #f44336;
+        }}
+        .legend-color.inpatient {{
+            background-color: #e8f5e8;
+            border-left-color: #4caf50;
+        }}
+        .legend-color.leave {{
+            background-color: #f3e5f5;
+            border-left-color: #9c27b0;
         }}
         .month {{
             margin-bottom: 30px;
@@ -322,6 +424,16 @@ def create_html_calendar(schedule_df,
             border-left-color: #f44336;
             color: #c62828;
         }}
+        .inpatient {{
+            background-color: #e8f5e8;
+            border-left-color: #4caf50;
+            color: #2e7d32;
+        }}
+        .leave {{
+            background-color: #f3e5f5;
+            border-left-color: #9c27b0;
+            color: #7b1fa2;
+        }}
         .weekend {{
             background-color: #f8f9fa;
         }}
@@ -377,8 +489,8 @@ def create_html_calendar(schedule_df,
                 html_content += f'<td class="{css_class}">'
                 html_content += f'<div class="day-number">{day["day"]}</div>'
                 
-                # Order sessions for better display: morning, afternoon, then call
-                session_order = ['morning', 'afternoon', 'call']
+                # Order sessions for better display: morning, afternoon, call, inpatient, then leave
+                session_order = ['morning', 'afternoon', 'call', 'inpatient', 'leave']
                 sessions_to_display = []
                 
                 # Add sessions in preferred order
@@ -391,8 +503,8 @@ def create_html_calendar(schedule_df,
                     if session_type not in session_order:
                         sessions_to_display.append((session_type, providers))
                 
-                for session_type, providers in sessions_to_display:
-                    if providers:
+                for i, (session_type, providers) in enumerate(sessions_to_display):
+                    if providers:                
                         # Show all providers without truncation
                         provider_text = ', '.join(providers)
                         
@@ -403,10 +515,13 @@ def create_html_calendar(schedule_df,
                             html_content += f'<strong>PM:</strong> {provider_text}'
                         elif session_type == "call":
                             html_content += f'<strong>CALL:</strong> {provider_text}'
+                        elif session_type == "inpatient":
+                            html_content += f'<strong>IP:</strong> {provider_text}'
+                        elif session_type == "leave":
+                            html_content += f'<strong>LR:</strong> {provider_text}'
                         else:
                             html_content += f'<strong>{session_type.upper()}:</strong> {provider_text}'
                         html_content += '</div>'
-                        
                 
                 html_content += "</td>"
             html_content += "</tr>"
@@ -416,7 +531,34 @@ def create_html_calendar(schedule_df,
         </table>
     </div>
         """
-    
+    # Add legend at the bottom
+    html_content += """
+    <div class="legend">
+        <div class="legend-items">
+            <div class="legend-item">
+                <div class="legend-color morning"></div>
+                <span><strong>AM:</strong> Morning clinic</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color afternoon"></div>
+                <span><strong>PM:</strong> Afternoon clinic</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color inpatient"></div>
+                <span><strong>IP:</strong> Inpatient provider</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color call"></div>
+                <span><strong>CALL:</strong> Call assignment</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color leave"></div>
+                <span><strong>LR:</strong> Leave request</span>
+            </div>
+        </div>
+    </div>
+    """
+
     html_content += "</body></html>"
 
     # Save the file
