@@ -67,6 +67,10 @@ Some primary care providers at Chinle serve in multiple departments, for example
 
 This staged approach ensures that cross-department providers are scheduled consistently and without conflict across the three services. It also reflects the higher coordination demands of Pediatrics, where call coverage is tightly structured and less flexible than general clinic staffing.
 
+### Specialty Clinics 
+
+The scheduler enforces constraints for fracture clinic, ensuring that at least one fracture clinic provider is scheduled for both morning and afternoon sessions on Wednesdays. Additional specialty clinic rules could be incorporated in future versions as needed.
+
 ## Scheduler Output
 
 The scheduler produces a binary output for each provider, day, and session:
@@ -82,7 +86,7 @@ An HTML calendar is generated for each department using the schedule dataframe.
 
 ### Schedule Dataframe
 
-The primary dataframe output is the complete schedule showing which providers are assigned to each session:
+The schedule dataframe is the complete schedule showing which providers are assigned to each session:
 
 |      date     | day_of_week |  session  |      providers      | count |
 |---------------|-------------|-----------|---------------------|-------|
@@ -91,7 +95,7 @@ The primary dataframe output is the complete schedule showing which providers ar
 
 ### Provider Summary Dataframe
 
-A summary of each provider's clinic workload is also generated:
+A summary of each provider's clinic and call workload is also generated:
 
 |  provider  | week_31 | week_32 | week_33 | week_34 | total_sessions |
 |------------|---------|---------|---------|---------|----------------|
