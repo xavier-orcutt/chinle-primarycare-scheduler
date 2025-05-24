@@ -1,10 +1,10 @@
 provider,week_31,week_32,week_33,week_34,week_35,total_call
-Bedele,0,0,0,1,1,2
-Carrasco,0,1,0,0,1,2
+Bedele,0,0,0,1,0,1
+Carrasco,1,1,0,0,1,3
 Mador,0,0,1,0,0,1
 Menachof,0,0,1,0,1,2
-Miller,0,2,1,0,0,3
-Powell,0,1,1,1,1,4
-Shin,0,0,0,2,0,2
-Sridhar,0,0,1,1,0,2
-Tarr,1,1,0,0,0,2
+Miller,0,1,1,1,0,3
+Powell,0,2,0,2,1,5
+Shin,0,0,0,1,1,2
+Sridhar,0,0,2,0,0,2
+Tarr,0,1,0,0,0,1
