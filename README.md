@@ -24,7 +24,7 @@ The Chinle Primary Care Scheduler is built in two layers:
 The scheduling software converts the primary care department clinic rules into computer logic. It accounts for each provider’s schedule preferences, clinic workload limits, time off, inpatient assignments, and federal holidays.
 
 ### 2. The Optimization Engine (CP-SAT)
-The scheduling software uses CP-SAT for solving the scheduling puzzle. CP-SAT is able to try millions of scheduling combinations in seconds, remember all rules, and find the best solution among all the valid possibilities. 
+The scheduling software uses CP-SAT for solving the scheduling puzzle. CP-SAT is able to try thousands of scheduling combinations in seconds, remember all rules, and find the best solution among all the valid possibilities. 
 
 ## Scheduler Inputs 
 
