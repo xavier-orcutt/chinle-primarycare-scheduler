@@ -412,6 +412,13 @@ def create_peds_schedule(
                                             calendar)
         
         # Add clinic workload constraints
+        clinic_objective_terms = add_clinic_count_constraints(model, 
+                                                              shift_vars, 
+                                                              current_config['providers'], 
+                                                              inpatient_starts_df)
+        
+        objective_terms.extend(clinic_objective_terms)
+
         rdo_penalty_terms = add_rdo_constraints(model, 
                                                 shift_vars, 
                                                 leave_df, 
@@ -420,13 +427,6 @@ def create_peds_schedule(
                                                 current_config['providers'])
         
         objective_terms.extend(rdo_penalty_terms) 
-
-        clinic_objective_terms = add_clinic_count_constraints(model, 
-                                                              shift_vars, 
-                                                              current_config['providers'], 
-                                                              inpatient_starts_df)
-        
-        objective_terms.extend(clinic_objective_terms)
         
         # Add global clinic max/min staffing constraints
         add_min_max_staffing_constraints(model, 
