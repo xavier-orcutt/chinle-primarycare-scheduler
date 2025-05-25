@@ -53,10 +53,6 @@ providers:
   Bia:
     role: MD
     max_clinics_per_week: 6 
-  
-  Brush:
-    role: NP
-    max_clinics_per_week: 5
 
   Gelman: 
     role: MD
