@@ -537,23 +537,23 @@ def create_html_calendar(schedule_df,
         <div class="legend-items">
             <div class="legend-item">
                 <div class="legend-color morning"></div>
-                <span><strong>AM:</strong> Morning clinic</span>
+                <span><strong>AM:</strong> Morning Clinic</span>
             </div>
             <div class="legend-item">
                 <div class="legend-color afternoon"></div>
-                <span><strong>PM:</strong> Afternoon clinic</span>
+                <span><strong>PM:</strong> Afternoon Clinic</span>
             </div>
             <div class="legend-item">
                 <div class="legend-color inpatient"></div>
-                <span><strong>IP:</strong> Inpatient provider</span>
+                <span><strong>IP:</strong> Inpatient Provider</span>
             </div>
             <div class="legend-item">
                 <div class="legend-color call"></div>
-                <span><strong>CALL:</strong> Call assignment</span>
+                <span><strong>CALL:</strong> Call Assignment</span>
             </div>
             <div class="legend-item">
                 <div class="legend-color leave"></div>
-                <span><strong>LR:</strong> Leave request</span>
+                <span><strong>LR:</strong> Leave Request</span>
             </div>
         </div>
     </div>
