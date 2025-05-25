@@ -36,7 +36,7 @@ The scheduler relies on three main inputs:
 
 ### Rules
 
-The scheduler enforces the core rules throught this process:
+The scheduler enforces core rules through a three-layer structure:
 
 1. **Plain-English Documentation** - Core scheduling policies established by Chinle administration are documented in `docs/clinic_rules.pdf` and `docs/call_rules.pdf`.
 2. **Configuration Files** - These policies are codified in human-readable YAML files (`config/` folder) containing both clinic-level rules (staffing minimums, holiday dates) and provider-specific rules (workload limits, RDO preferences). This structure makes it easy to adjust existing constraints without programming knowledge, add new providers or modify existing provider parameters, and maintain separate rule sets for each department.
@@ -54,7 +54,7 @@ Each department (Internal Medicine, Family Practice, and Pediatrics) generates i
 
 1. **Input Processing**: The scheduler takes in the inputs as defined above.
 2. **Model Building**: It creates decision variables and translates all scheduling rules into mathematical constraints.
-3. **Iterative Solving**: The CP-SAT solver attempts to find a solution, starting with high staffing requirements and automatically reducing them until a feasible schedule is found.
+3. **Iterative Solving**: The CP-SAT solver finds the highest feasible minimum staffing level by starting with 4 providers per session (user configurable) and iteratively reducing this requirement until a feasible schedule is achieved.
 
 The system treats all submitted leave requests as pre-approved during the scheduling process and automatically identifies the highest achievable minimum staffing level given the leave requests. This provides a clear picture of the "worst-case" staffing scenario if all requested leave were granted. Final leave approval remains at the discretion of department chiefs.
 
