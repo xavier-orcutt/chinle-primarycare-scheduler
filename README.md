@@ -105,7 +105,7 @@ The schedule dataframe can be converted to an HTML calendar for easy viewing usi
 
 ![Example Calendar Week](docs/images/calendar_example_fp.png)
 
-*Example: One week view of the generated HTML calendar for Family Practice showing morning/afternoon clinic assignments, inpatient provider, and leave requests.*
+*Example: One week view of the generated HTML calendar for Family Practice showing morning and afternoon clinic assignments, inpatient provider (IP), and leave requests (LR).*
 
 ### Solution Status 
 
