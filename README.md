@@ -103,7 +103,7 @@ A summary of each provider's clinic and call workload is also generated:
 
 The schedule dataframe can be converted to an HTML calendar for easy viewing using a separate function (see `utils/calendar_formatter.py`).
 
-![Example Calendar Week](docs/images/calendar_example.png)
+![Example Calendar Week](docs/images/calendar_example_fp.png)
 
 *Example: One week view of the generated HTML calendar for Family Practice showing morning/afternoon clinic assignments, inpatient provider, and leave requests.*
 
@@ -165,7 +165,7 @@ A full walkthrough of how the Internal Medicine, Family Practice, and Pediatric 
 │   └── leave_requests.csv
 ├── docs/                          # Plain-English summary of scheduling rules and calendar output example
 │   ├── images/                            
-│   │   └── example_calendar.png
+│   │   └── example_calendar_fp.png
 │   ├── clinic_rules.pdf
 │   └── call_rules.pdf     
 ├── engine/                        # Entry point for running the scheduler
