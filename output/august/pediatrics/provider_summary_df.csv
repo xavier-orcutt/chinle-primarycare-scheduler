@@ -1,10 +1,8 @@
-provider,week_32,week_33,week_34,week_35,total_clinic
-Bedele,0,0,6,0,6
-Carrasco,4,0,3,6,13
-Mador,0,4,0,0,4
-Menachof,0,3,0,1,4
-Miller,3,4,6,0,13
-Powell,0,0,0,0,0
-Shin,0,0,0,2,2
-Sridhar,3,6,6,4,19
-Tarr,6,0,0,0,6
+provider,week_31,week_32,week_33,week_34,week_35,total_sessions,total_AM,total_PM
+Bedele,"0, 0","0, 0","0, 0","6, 4","0, 0",6,3,3
+Carrasco,"0, 0","5, 3","0, 0","3, 2","6, 4",14,7,7
+Mador,"0, 0","0, 0","4, 3","0, 0","0, 0",4,2,2
+Menachof,"0, 0","0, 0","3, 1","0, 0","1, 1",4,3,1
+Miller,"0, 0","4, 2","4, 3","6, 6","0, 0",14,7,7
+Sridhar,"0, 0","3, 2","6, 6","6, 3","6, 6",21,10,11
+Tarr,"0, 0","5, 3","0, 0","0, 0","0, 0",5,3,2
