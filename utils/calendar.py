@@ -72,7 +72,6 @@ def generate_pediatric_calendar(start_date, end_date, clinic_rules):
         A dictionary of clinic-level rules parsed from pediatrics.yml. It should include:
             - 'clinic_days': list of weekdays to allow clinic scheduling (e.g., ["Monday", "Tuesday", ...])
             - 'clinic_sessions': dict mapping weekdays to allowed clinic sessions (e.g., {"Monday": ["morning", "afternoon"]})
-            - 'call_days' : list of days to allow call (e.g., ["Sunday", "Monday", ...])
             - 'holiday_dates': list of datetime.date objects to skip scheduling (optional)
 
     Returns:
@@ -89,7 +88,6 @@ def generate_pediatric_calendar(start_date, end_date, clinic_rules):
     try:
         clinic_days = clinic_rules['clinic_days']
         clinic_sessions = clinic_rules['clinic_sessions']
-        call_days = clinic_rules['call_days']
     except KeyError as e:
         raise KeyError(f"Missing required key in clinic_rules: {e}")
     
@@ -101,24 +99,17 @@ def generate_pediatric_calendar(start_date, end_date, clinic_rules):
     while current <= end_date:
         weekday = current.strftime('%A')  # e.g., "Monday"
         
-        # Skip holidays completely (no clinic, no call)
-        if current in holiday_dates:
-            current += timedelta(days=1)
-            continue
-
         sessions = []
         
-        # Add clinic sessions if this is a clinic day
-        if weekday in clinic_days:
+        # Add clinic sessions if this is a clinic day AND not a holiday
+        if weekday in clinic_days and current not in holiday_dates:
             sessions.extend(clinic_sessions.get(weekday, []))
         
-        # Add call sessions if this is a call day AND not in our no-call dates
-        if weekday in call_days:
-            sessions.append('call')
+        # Add call session for every day (including holidays)
+        sessions.append('call')
         
-        # Add date to calendar if it has any sessions
-        if sessions:
-            calendar[current] = sessions
+        # Add date to calendar (every date will have at least call)
+        calendar[current] = sessions
         
         # Increment the date once per loop iteration
         current += timedelta(days=1)
