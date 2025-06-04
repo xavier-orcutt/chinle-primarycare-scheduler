@@ -13,6 +13,165 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+def calculate_consecutive_clinics(provider, week_dates, shift_vars, solver, calendar):
+    """
+    Calculate the maximum consecutive clinic sessions for a provider in a given week.
+    Thursday morning admin time breaks consecutive streaks (ie., we reset the count at Thursday PM). 
+    
+    Only counts morning and afternoon clinic sessions where the provider is actually scheduled.
+    Does NOT count call sessions.
+    """
+    max_consecutive = 0
+    current_consecutive = 0
+    
+    for date in sorted(week_dates):
+        if date in calendar:
+            # Process morning session if it exists in calendar
+            if 'morning' in calendar[date]:
+                is_scheduled = (
+                    date in shift_vars[provider] and 
+                    'morning' in shift_vars[provider][date] and
+                    solver.Value(shift_vars[provider][date]['morning']) == 1
+                )
+                
+                if is_scheduled:
+                    current_consecutive += 1
+                    max_consecutive = max(max_consecutive, current_consecutive)
+                else:
+                    current_consecutive = 0
+            
+            # Reset consecutive count at Thursday afternoon (due to Thursday AM admin break)
+            if date.strftime('%A') == 'Thursday' and 'afternoon' in calendar[date]:
+                current_consecutive = 0  # Reset because of Thursday AM admin break
+            
+            # Process afternoon session if it exists in calendar
+            if 'afternoon' in calendar[date]:
+                is_scheduled = (
+                    date in shift_vars[provider] and 
+                    'afternoon' in shift_vars[provider][date] and
+                    solver.Value(shift_vars[provider][date]['afternoon']) == 1
+                )
+                
+                if is_scheduled:
+                    current_consecutive += 1
+                    max_consecutive = max(max_consecutive, current_consecutive)
+                else:
+                    current_consecutive = 0
+    
+    return max_consecutive
+
+def create_enhanced_provider_summary(shift_vars, solver, config, calendar):
+    """
+    Creates enhanced provider summary with AM/PM split and consecutive clinic tracking.
+    
+    Parameters:
+    ----------
+    shift_vars : dict
+        Nested dict of binary decision variables
+    solver : cp_model.CpSolver
+        Solved OR-Tools solver instance
+    config : dict
+        Configuration dictionary with provider information
+    calendar : dict
+        Calendar dictionary with date keys and session values
+        
+    Returns:
+    -------
+    pd.DataFrame
+        Enhanced provider summary DataFrame
+    """
+    from collections import defaultdict
+    import pandas as pd
+    
+    # Weekly tracking with consecutive
+    provider_weekly_data = defaultdict(lambda: defaultdict(lambda: {'total': 0, 'consecutive': 0}))
+    
+    # Total AM/PM tracking across all dates
+    provider_totals = defaultdict(lambda: {'total_AM': 0, 'total_PM': 0})
+    
+    all_providers = list(config['providers'].keys())
+    
+    # Group dates by week
+    dates_by_week = defaultdict(list)
+    
+    for day in sorted(calendar.keys()):
+        week_key = (day.year, day.isocalendar()[1])
+        dates_by_week[week_key].append(day)
+    
+    # Process each week for total sessions and consecutive tracking
+    for week_key, week_dates in dates_by_week.items():
+        for provider in all_providers:
+            total_sessions = 0
+            
+            # Count total clinic sessions for the week
+            for day in week_dates:
+                for session in calendar.get(day, []):
+                    if session in ['morning', 'afternoon']:
+                        if (day in shift_vars[provider] and 
+                            session in shift_vars[provider][day] and
+                            solver.Value(shift_vars[provider][day][session]) == 1):
+                            total_sessions += 1
+            
+            # Calculate consecutive sessions for the week
+            consecutive = calculate_consecutive_clinics(provider, week_dates, shift_vars, solver, calendar)
+            
+            provider_weekly_data[provider][week_key] = {
+                'total': total_sessions,
+                'consecutive': consecutive
+            }
+    
+    # Process all dates for total AM/PM tracking
+    for provider in all_providers:
+        total_am = 0
+        total_pm = 0
+        
+        for day in calendar.keys():  # All days in the calendar
+            for session in calendar[day]:
+                if (day in shift_vars[provider] and 
+                    session in shift_vars[provider][day] and
+                    solver.Value(shift_vars[provider][day][session]) == 1):
+                    
+                    if session == 'morning':
+                        total_am += 1
+                    elif session == 'afternoon':
+                        total_pm += 1
+        
+        # Store total AM/PM for this provider
+        provider_totals[provider] = {
+            'total_AM': total_am,
+            'total_PM': total_pm
+        }
+    
+    # Build the summary DataFrame
+    all_weeks = sorted(dates_by_week.keys())
+    
+    summary_data = []
+    for provider in all_providers:
+        provider_data = {'provider': provider}
+        total_sessions = 0
+        
+        # Add weekly columns with format "total, consecutive"
+        for week in all_weeks:
+            week_num = week[1]
+            week_data = provider_weekly_data[provider][week]
+            total = week_data['total']
+            consecutive = week_data['consecutive']
+            
+            # Format as "total, consecutive"
+            provider_data[f'week_{week_num}'] = f"{total}, {consecutive}"
+            total_sessions += total
+        
+        # Add total sessions
+        provider_data['total_sessions'] = total_sessions
+        
+        # Add total AM/PM columns
+        provider_data['total_AM'] = provider_totals[provider]['total_AM']
+        provider_data['total_PM'] = provider_totals[provider]['total_PM']
+        
+        summary_data.append(provider_data)
+    
+    return pd.DataFrame(summary_data)
+
 def create_im_schedule(
         config_path,
         leave_requests_path,
@@ -172,12 +331,10 @@ def create_im_schedule(
             
             # Create a DataFrame to store the schedule
             schedule_data = []
-            provider_sessions = defaultdict(lambda: defaultdict(int))
             
             for day in sorted(calendar.keys()):
                 day_of_week = day.strftime('%A')
-                week_key = (day.year, day.isocalendar()[1])
-                
+        
                 for session in calendar[day]:
                     scheduled = [
                         provider for provider in shift_vars
@@ -185,10 +342,6 @@ def create_im_schedule(
                         and session in shift_vars[provider][day]
                         and solver.Value(shift_vars[provider][day][session]) == 1
                     ]
-                    
-                    # Update session counts for each provider
-                    for provider in scheduled:
-                        provider_sessions[provider][week_key] += 1
                     
                     # Add to schedule data
                     schedule_data.append({
@@ -202,28 +355,13 @@ def create_im_schedule(
             # Convert to DataFrame
             schedule_df = pd.DataFrame(schedule_data)
             
-            # Create provider summary DataFrame
-            all_providers = list(current_config['providers'])
-            all_weeks = sorted(set(week for provider_weeks in provider_sessions.values()
-                                 for week in provider_weeks))
+            # Create enhanced provider summary DataFrame
+            provider_summary_df = create_enhanced_provider_summary(shift_vars, 
+                                                                   solver, 
+                                                                   current_config, 
+                                                                   calendar)
             
-            summary_data = []
-            for provider in all_providers:
-                provider_data = {'provider': provider}
-                total_sessions = 0
-                
-                for week in all_weeks:
-                    week_num = week[1]
-                    sessions = provider_sessions[provider][week]
-                    provider_data[f'week_{week_num}'] = sessions
-                    total_sessions += sessions
-                    
-                provider_data['total_sessions'] = total_sessions
-                summary_data.append(provider_data)
-                
-            provider_summary_df = pd.DataFrame(summary_data)
-            
-            # Create a detailed status dictionary
+            # Create solution status dictionary
             solution_status = {
                 'Status': 'OPTIMAL' if status == cp_model.OPTIMAL else 'FEASIBLE',
                 'Minimum providers per session': min_providers,
@@ -327,6 +465,7 @@ def create_peds_schedule(
         add_leave_constraints,
         add_inpatient_block_constraints,
         add_call_constraints,
+        add_monthly_call_limits,
         add_post_call_afternoon_constraints,
         add_clinic_count_constraints, 
         add_rdo_constraints,
@@ -400,12 +539,16 @@ def create_peds_schedule(
         call_objective_terms = add_call_constraints(model, 
                                                     shift_vars, 
                                                     leave_df, 
-                                                    inpatient_days_df, 
                                                     inpatient_starts_df, 
                                                     current_config['clinic_rules'],
                                                     current_config['providers'])
         
         objective_terms.extend(call_objective_terms)
+
+        add_monthly_call_limits(model, 
+                                shift_vars, 
+                                calendar, 
+                                current_config['providers'])
         
         add_post_call_afternoon_constraints(model, 
                                             shift_vars, 
@@ -455,16 +598,12 @@ def create_peds_schedule(
             schedule_data = []
             call_schedule_data = []
             
-            # Separate tracking for clinic sessions vs call
-            clinic_sessions = defaultdict(lambda: defaultdict(int))
+            # Separate tracking for call sessions only
             call_sessions = defaultdict(lambda: defaultdict(int))
             
             for day in sorted(calendar.keys()):
                 date_obj = day
                 day_of_week = date_obj.strftime('%A')
-                
-                # For clinic, use standard ISO week (Monday-based)
-                clinic_week_key = (date_obj.year, date_obj.isocalendar()[1])
                 
                 # For tracking weekly call, use Sunday-Thursday as a "call week"
                 call_week_start = date_obj - timedelta(days=date_obj.weekday() + 1)  # Get Sunday
@@ -478,7 +617,7 @@ def create_peds_schedule(
                         and solver.Value(shift_vars[provider][day][session]) == 1
                     ]
                     
-                    # Process differently based on session type
+                    # Process call sessions separately for call summary
                     if session == 'call':
                         # Update call counts
                         for provider in scheduled:
@@ -490,10 +629,6 @@ def create_peds_schedule(
                             'day_of_week': day_of_week,
                             'provider': ','.join(scheduled)
                         })
-                    else:  # morning or afternoon clinic only
-                        # Update clinic counts
-                        for provider in scheduled:
-                            clinic_sessions[provider][clinic_week_key] += 1
                     
                     # Add to main schedule data (both clinic and call)
                     schedule_data.append({
@@ -508,35 +643,25 @@ def create_peds_schedule(
             schedule_df = pd.DataFrame(schedule_data)
             schedule_df.loc[schedule_df['session'] == 'call', 'count'] = np.nan
             
-            # Create provider summary DataFrame - with separate clinic and call sections
+            # Create enhanced provider summary (clinic sessions with AM/PM and consecutive)
+            provider_summary_df = create_enhanced_provider_summary(
+                shift_vars, solver, current_config, calendar
+            )
+
+            # Filter to only providers with max_clinics_per_week > 0
+            providers_with_clinics = [
+                provider for provider, config in current_config['providers'].items()
+                if config.get('max_clinics_per_week', 0) > 0
+            ]
+            provider_summary_df = provider_summary_df[
+                provider_summary_df['provider'].isin(providers_with_clinics)
+            ].reset_index(drop=True)
+            
+            # Create call summary DataFrame (inline, call-specific logic)
             all_providers = list(current_config['providers'])
-            
-            # Get all unique weeks
-            clinic_weeks = sorted(set(week for provider_weeks in clinic_sessions.values()
-                                     for week in provider_weeks))
             call_weeks = sorted(set(week for provider_weeks in call_sessions.values()
-                                   for week in provider_weeks))
+                                for week in provider_weeks))
             
-            summary_data = []
-            for provider in all_providers:
-                provider_data = {'provider': provider}
-                total_clinic = 0
-                
-                # Add clinic sessions by week (morning/afternoon only)
-                for week in clinic_weeks:
-                    week_num = week[1]
-                    clinic_count = clinic_sessions[provider][week]
-                    provider_data[f'week_{week_num}'] = clinic_count
-                    total_clinic += clinic_count
-                
-                # Add total clinic sessions
-                provider_data['total_clinic'] = total_clinic
-                
-                summary_data.append(provider_data)
-                
-            provider_summary_df = pd.DataFrame(summary_data)
-            
-            # Create separate call summary DataFrame
             call_summary_data = []
             for provider in all_providers:
                 call_data = {'provider': provider}
@@ -554,7 +679,7 @@ def create_peds_schedule(
                 call_summary_data.append(call_data)
                 
             call_summary_df = pd.DataFrame(call_summary_data)
-            
+                    
             # Verify the actual minimum staffing level achieved for clinic sessions
             clinic_only_df = schedule_df[schedule_df['session'].isin(['morning', 'afternoon'])]
             min_staff_achieved = clinic_only_df['count'].min() if not clinic_only_df.empty else 0
@@ -667,7 +792,8 @@ def create_fp_schedule(
         create_shift_variables,
         add_leave_constraints,
         add_inpatient_block_constraints,
-        add_pediatric_constraints,
+        add_pediatric_call_constraints,
+        add_friday_only_constraints,
         add_clinic_count_constraints,
         add_fracture_clinic_constraints, 
         add_rdo_constraints,
@@ -749,9 +875,15 @@ def create_fp_schedule(
                                         inpatient_days_df)
         
         # Add clinic workload constraints
-        add_pediatric_constraints(model, 
-                                  shift_vars, 
-                                  peds_schedule_df)
+        add_pediatric_call_constraints(model, 
+                                       shift_vars, 
+                                       peds_schedule_df)
+        
+        # Add Friday-only constraints 
+        add_friday_only_constraints(model,
+                                    shift_vars,
+                                    calendar, 
+                                    current_config['providers'])
 
         clinic_objective_terms = add_clinic_count_constraints(model, 
                                                               shift_vars, 
@@ -802,12 +934,10 @@ def create_fp_schedule(
             
             # Create a DataFrame to store the schedule
             schedule_data = []
-            provider_sessions = defaultdict(lambda: defaultdict(int))
             
             for day in sorted(calendar.keys()):
                 day_of_week = day.strftime('%A')
-                week_key = (day.year, day.isocalendar()[1])
-                
+        
                 for session in calendar[day]:
                     scheduled = [
                         provider for provider in shift_vars
@@ -815,10 +945,6 @@ def create_fp_schedule(
                         and session in shift_vars[provider][day]
                         and solver.Value(shift_vars[provider][day][session]) == 1
                     ]
-                    
-                    # Update session counts for each provider
-                    for provider in scheduled:
-                        provider_sessions[provider][week_key] += 1
                     
                     # Add to schedule data
                     schedule_data.append({
@@ -832,26 +958,11 @@ def create_fp_schedule(
             # Convert to DataFrame
             schedule_df = pd.DataFrame(schedule_data)
             
-            # Create provider summary DataFrame
-            all_providers = list(current_config['providers'])
-            all_weeks = sorted(set(week for provider_weeks in provider_sessions.values()
-                                 for week in provider_weeks))
-            
-            summary_data = []
-            for provider in all_providers:
-                provider_data = {'provider': provider}
-                total_sessions = 0
-                
-                for week in all_weeks:
-                    week_num = week[1]
-                    sessions = provider_sessions[provider][week]
-                    provider_data[f'week_{week_num}'] = sessions
-                    total_sessions += sessions
-                    
-                provider_data['total_sessions'] = total_sessions
-                summary_data.append(provider_data)
-                
-            provider_summary_df = pd.DataFrame(summary_data)
+            # Create enhanced provider summary DataFrame
+            provider_summary_df = create_enhanced_provider_summary(shift_vars, 
+                                                                   solver, 
+                                                                   current_config, 
+                                                                   calendar)
             
             # Create a detailed status dictionary
             solution_status = {
