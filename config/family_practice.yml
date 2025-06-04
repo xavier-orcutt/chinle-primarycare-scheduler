@@ -28,8 +28,8 @@ clinic_rules:
     post_inpatient_leave: Friday    
 
   staffing:
-    min_providers_per_session: 0
-    max_providers_per_session: 5
+    min_providers_per_session: 1
+    max_providers_per_session: 4
 
   holiday_dates:
     - 2025-01-01  # New Year's Day
@@ -52,7 +52,13 @@ providers:
 
   Bia:
     role: MD
-    max_clinics_per_week: 6 
+    max_clinics_per_week: 6
+
+  Brush: 
+    role: NP
+    max_clinics_per_week: 2
+    needs_rdo: false
+    friday_only: true
 
   Gelman: 
     role: MD
@@ -74,7 +80,7 @@ providers:
   
   Shin:
     role: MD
-    max_clinics_per_week: 4
+    max_clinics_per_week: 6
   
   Suen:
     role: NP

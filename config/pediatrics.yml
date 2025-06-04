@@ -20,13 +20,6 @@ clinic_rules:
   random_day_off:
     eligible_days: [Monday, Tuesday, Wednesday, Friday]   # Thursday is excluded
 
-  call_days:
-    - Sunday
-    - Monday
-    - Tuesday
-    - Wednesday
-    - Thursday 
-
   inpatient_schedule:
     inpatient_length: 7
     inpatient_starts_on: Tuesday
@@ -36,7 +29,7 @@ clinic_rules:
 
   staffing:
     min_providers_per_session: 1
-    max_providers_per_session: 3
+    max_providers_per_session: 5
 
   holiday_dates:
     - 2025-01-01  # New Year's Day
@@ -56,45 +49,54 @@ providers:
   Bedele:
     role: MD
     max_clinics_per_week: 6
-    needs_rdo: true             
+    needs_rdo: true
+    max_calls_per_month: null      # No limit - can take unlimited call             
   
   Carrasco:
     role: MD
     max_clinics_per_week: 6
     needs_rdo: true
+    max_calls_per_month: null      
 
   Mador: 
     role: MD
     max_clinics_per_week: 6
     needs_rdo: true
+    max_calls_per_month: null
   
   Menachof:
     role: MD
     max_clinics_per_week: 3
     needs_rdo: true
+    max_calls_per_month: null
 
   Miller:
     role: MD
     max_clinics_per_week: 6
     needs_rdo: true
+    max_calls_per_month: null
 
   Powell:
     role: MD
     max_clinics_per_week: 0   # Family doctor who takes call but does clinics in family practice
     needs_rdo: false          # RDO will be assigned in family practice scheduler
     fracture_clinic: true     # Does fracture clinic on Wednesdays in family practice impacting Tuesday call 
+    max_calls_per_month: 3    # Limited to 2 calls per 28-day period
 
   Shin: 
     role: MD
-    max_clinics_per_week: 2
-    needs_rdo: false        
+    max_clinics_per_week: 0
+    needs_rdo: false           
+    max_calls_per_month: 3        
 
   Sridhar: 
     role: MD
     max_clinics_per_week: 6
     needs_rdo: true
+    max_calls_per_month: null
   
   Tarr:
     role: MD
     max_clinics_per_week: 6
     needs_rdo: true
+    max_calls_per_month: null
