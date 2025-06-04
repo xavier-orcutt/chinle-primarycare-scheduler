@@ -271,7 +271,12 @@ def create_html_calendar(schedule_df,
     output_path = Path(output_dir)
     output_path.mkdir(exist_ok=True)
     
-    # Generate calendar data with leave information
+    # Get the schedule date range and limit calendar to that range +/- 1 day
+    schedule_dates = pd.to_datetime(schedule_df['date']).dt.date
+    schedule_start = schedule_dates.min()
+    schedule_end = schedule_dates.max()
+    
+    # Generate calendar data with limited range
     calendar_data = format_schedule_as_calendar(schedule_df = schedule_df, 
                                                 config_path = config_path,
                                                 leave_requests_path = leave_requests_path,
@@ -454,7 +459,7 @@ def create_html_calendar(schedule_df,
         <p>Generated on {date.today().strftime('%B %d, %Y')}</p>
     </div>
 """
-    
+
     for month in calendar_data['months']:
         html_content += f"""
     <div class="month">
@@ -489,34 +494,51 @@ def create_html_calendar(schedule_df,
                 html_content += f'<td class="{css_class}">'
                 html_content += f'<div class="day-number">{day["day"]}</div>'
                 
-                # Order sessions for better display: morning, afternoon, call, inpatient, then leave
-                session_order = ['morning', 'afternoon', 'call', 'inpatient', 'leave']
-                sessions_to_display = []
+                # Only show sessions for dates within the schedule range
+                is_scheduled_date = schedule_start <= day['date'] <= schedule_end
                 
-                # Add sessions in preferred order
-                for session_type in session_order:
-                    if session_type in day['sessions']:
-                        sessions_to_display.append((session_type, day['sessions'][session_type]))
+                # For weekends, add spacing to align IP and CALL
+                if is_weekend:
+                    html_content += '<div style="height: 24px;"></div>'  # Two empty spaces
                 
-                # Add any remaining sessions not in the standard order
-                for session_type, providers in day['sessions'].items():
-                    if session_type not in session_order:
-                        sessions_to_display.append((session_type, providers))
-                
-                for i, (session_type, providers) in enumerate(sessions_to_display):
-                    if providers:                
-                        # Show all providers without truncation
-                        provider_text = ', '.join(providers)
+                # For dates not in the original schedule, don't show sessions
+                if not is_scheduled_date and not day['sessions']:
+                    # Skip processing sessions for dates not in schedule
+                    pass
+                else:
+                    # Order sessions: AM, PM, IP, CALL, LR
+                    session_order = ['morning', 'afternoon', 'inpatient', 'call', 'leave']
+                    sessions_to_display = []
+                    
+                    # Add sessions in preferred order - only if they exist
+                    for session_type in session_order:
+                        if session_type in day['sessions']:
+                            sessions_to_display.append((session_type, day['sessions'][session_type]))
+                    
+                    # Add any remaining sessions not in the standard order
+                    for session_type, providers in day['sessions'].items():
+                        if session_type not in session_order:
+                            sessions_to_display.append((session_type, providers))
+                    
+                    for i, (session_type, providers) in enumerate(sessions_to_display):
+                        # Add a visual spacer for Thursday PM to align with other days
+                        if (day['date'].strftime('%A') == 'Thursday' and 
+                            session_type == 'afternoon' and
+                            not any(s[0] == 'morning' for s in sessions_to_display)):
+                            html_content += '<div style="height: 11px;"></div>'  # Space for missing AM
                         
+                        # Show all providers
+                        provider_text = ', '.join(providers)
                         html_content += f'<div class="session {session_type}">'
+                        
                         if session_type == "morning":
                             html_content += f'<strong>AM:</strong> {provider_text}'
                         elif session_type == "afternoon": 
                             html_content += f'<strong>PM:</strong> {provider_text}'
-                        elif session_type == "call":
-                            html_content += f'<strong>CALL:</strong> {provider_text}'
                         elif session_type == "inpatient":
                             html_content += f'<strong>IP:</strong> {provider_text}'
+                        elif session_type == "call":
+                            html_content += f'<strong>CALL:</strong> {provider_text}'
                         elif session_type == "leave":
                             html_content += f'<strong>LR:</strong> {provider_text}'
                         else:
