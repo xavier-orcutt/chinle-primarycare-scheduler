@@ -69,6 +69,7 @@ def add_inpatient_block_constraints(model,
     Blocks clinic sessions for providers during inpatient weeks:
     - Monday before inpatient (pre_inpatient_leave)
     - Tuesday to Monday of inpatient week
+    - Tuesday AM session after inpatient, unless provider is on inpatient pediatrics  
     - Friday after inpatient (post_inpatient_leave)
 
     Parameters:
@@ -80,17 +81,19 @@ def add_inpatient_block_constraints(model,
         Nested dict of binary decision variables: shift_vars[provider][date][session].
 
     inpatient_starts_df : pd.DataFrame
-        DataFrame with ['provider', 'start_date'] indicating start of inpatient week.
+        DataFrame with ['provider', 'start_date', 'inpatient_type'] indicating start of inpatient week.
 
     inpatient_days_df : pd.DataFrame
-        Expanded DataFrame with columns ['provider', 'date'] for all inpatient dates.
+        Expanded DataFrame with columns ['provider', 'date', 'inpatient_type'] for all inpatient dates.
     """
     blocked_dates = defaultdict(set)
+    tuesday_am_exceptions = set() 
 
-    # Block pre and post inpatient leave days
+    # # Block pre and post inpatient leave days along with Tuesday AM
     for _, row in inpatient_starts_df.iterrows():
         provider = row['provider']
         start_date = row['start_date']
+        inpatient_type = row['inpatient_type']
 
         # Block the day before inpatient starts (typically Monday)
         pre_leave_date = start_date - timedelta(days=1)
@@ -98,7 +101,19 @@ def add_inpatient_block_constraints(model,
         
         # Block the Friday after inpatient ends
         post_leave_date = start_date + timedelta(days=10)
-        blocked_dates[provider].add(post_leave_date) 
+        blocked_dates[provider].add(post_leave_date)
+        
+        # Block Tuesday AM after inpatient ends (Tuesday after the Friday)
+        # This is day 7 after inpatient start (start_date + 7 days)
+        tuesday_after_inpatient = start_date + timedelta(days=7)
+        
+        # Special exception: Don't block Tuesday AM for any provider if on peds inpatient
+        if inpatient_type == 'peds':
+            tuesday_am_exceptions.add((provider, tuesday_after_inpatient))
+        else:
+            # For all other cases, we'll handle Tuesday AM blocking separately
+            # since we only want to block the morning session, not the whole day
+            pass
 
     # Block all inpatient dates (Tuesday–Monday inclusive)
     for _, row in inpatient_days_df.iterrows():
@@ -106,11 +121,30 @@ def add_inpatient_block_constraints(model,
         d = row['date']
         blocked_dates[provider].add(d)
 
-    # Apply constraints
+    # Apply constraints for blocked dates (all sessions)
     for provider, dates in blocked_dates.items():
         for d in dates:
             for session in shift_vars.get(provider, {}).get(d, {}):
                 model.Add(shift_vars[provider][d][session] == 0)
+
+    # Handle Tuesday AM blocking separately (only morning session)
+    for _, row in inpatient_starts_df.iterrows():
+        provider = row['provider']
+        start_date = row['start_date']
+        inpatient_type = row['inpatient_type']
+        
+        # Calculate Tuesday after inpatient
+        tuesday_after_inpatient = start_date + timedelta(days=7)
+        
+        # Check if this provider/date combination should be exempted
+        if (provider, tuesday_after_inpatient) in tuesday_am_exceptions:
+            continue
+            
+        # Block only the morning session on Tuesday after inpatient
+        if (provider in shift_vars and 
+            tuesday_after_inpatient in shift_vars[provider] and 
+            'morning' in shift_vars[provider][tuesday_after_inpatient]):
+            model.Add(shift_vars[provider][tuesday_after_inpatient]['morning'] == 0)
 
 def add_pediatric_constraints(model,
                               shift_vars,
@@ -394,8 +428,7 @@ def add_rdo_constraints(model,
       - Any provider with inpatient or leave that week does NOT get additional RDO
       - RDO must occur on an eligible weekday (e.g., Mon/Tue/Wed/Fri)
       - If a provider has an rdo_preference set in YAML, it must occur on that day
-      - Special handling for providers also working in pediatrics (Powell and Shin):
-        - RDO cannot be assigned on pediatric clinic days
+      - Special handling for providers also working in pediatrics who need RDO assigned in FP:
         - RDO cannot be assigned on pediatric call days (per call rules)
         - Penalize RDO on the day after pediatric call
 
@@ -495,6 +528,11 @@ def add_rdo_constraints(model,
 
     # Apply RDO constraints for each provider and week
     for provider, weeks_data in eligible_dates_by_provider_week.items():
+
+        # Check if provicder needs RDO (eg., Brush doesn't)
+        if not provider_config.get(provider, {}).get('needs_rdo', True):
+            continue  # Skip providers who don't need RDOs
+
         for week, eligible_dates in weeks_data.items():
             # Skip blocked weeks (providers don't get RDO)
             if week in blocked_weeks[provider]:
@@ -515,7 +553,7 @@ def add_rdo_constraints(model,
             # Create RDO indicators for each eligible day
             rdo_indicators = []
             for date in eligible_dates:
-                # Skip dates with pediatric clinic or call sessions
+                # Skip dates with pediatric call sessions
                 if date in peds_clinic_dates[provider] or date in peds_call_dates[provider]:
                     continue
                     
@@ -643,3 +681,58 @@ def add_min_max_staffing_constraints(model,
                 model.Add(sum(staff_vars) >= min_staff)
                 model.Add(sum(staff_vars) <= max_staff)
 
+def add_friday_only_constraints(model,
+                                shift_vars,
+                                calendar,
+                                provider_config):
+    """
+    Adds constraints for providers who should only work on specific days.
+    Currently supports Friday-only providers who work every Friday (unless holiday).
+    
+    Parameters:
+    ----------
+    model : cp_model.CpModel
+        OR-Tools model.
+    
+    shift_vars : dict
+        Nested dict of binary decision variables: shift_vars[provider][date][session].
+    
+    calendar : dict
+        Dictionary from generate_clinic_calendar().
+        Keys are datetime.date, values are lists of valid sessions.
+    
+    provider_config : dict
+        Parsed provider-level configuration.
+    """
+    # Identify Friday-only providers
+    friday_only_providers = [
+        provider for provider, config in provider_config.items()
+        if config.get('friday_only', False)
+    ]
+    
+    if not friday_only_providers:
+        return  # No Friday-only providers to constrain
+    
+    # For each Friday-only provider
+    for provider in friday_only_providers:
+        if provider not in shift_vars:
+            continue
+            
+        for date in shift_vars[provider]:
+            day_of_week = date.strftime('%A')
+            
+            if day_of_week == 'Friday':
+                # Check if this Friday is in the calendar (not a holiday)
+                if date in calendar:
+                    # Assign this provider to all Friday sessions
+                    for session in shift_vars[provider][date]:
+                        if session in calendar[date]:  # Make sure session exists
+                            model.Add(shift_vars[provider][date][session] == 1)
+                else:
+                    # If Friday is a holiday (not in calendar), block all sessions
+                    for session in shift_vars[provider][date]:
+                        model.Add(shift_vars[provider][date][session] == 0)
+            else:
+                # Block all non-Friday sessions
+                for session in shift_vars[provider][date]:
+                    model.Add(shift_vars[provider][date][session] == 0)

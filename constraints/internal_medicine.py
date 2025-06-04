@@ -68,6 +68,7 @@ def add_inpatient_block_constraints(model,
     Blocks clinic sessions for providers during inpatient weeks:
     - Monday before inpatient (pre_inpatient_leave)
     - Tuesday to Monday of inpatient week
+    - Tuesday AM session after inpatient, unless provider is on inpatient pediatrics  
     - Friday after inpatient (post_inpatient_leave)
 
     Parameters:
@@ -79,17 +80,19 @@ def add_inpatient_block_constraints(model,
         Nested dict of binary decision variables: shift_vars[provider][date][session].
 
     inpatient_starts_df : pd.DataFrame
-        DataFrame with ['provider', 'start_date'] indicating start of inpatient week.
+        DataFrame with ['provider', 'start_date', 'inpatient_type'] indicating start of inpatient week.
 
     inpatient_days_df : pd.DataFrame
-        Expanded DataFrame with columns ['provider', 'date'] for all inpatient dates.
+        Expanded DataFrame with columns ['provider', 'date', 'inpatient_type'] for all inpatient dates.
     """
     blocked_dates = defaultdict(set)
+    tuesday_am_exceptions = set() 
 
-    # Block pre and post inpatient leave days
+    # # Block pre and post inpatient leave days along with Tuesday AM
     for _, row in inpatient_starts_df.iterrows():
         provider = row['provider']
         start_date = row['start_date']
+        inpatient_type = row['inpatient_type']
 
         # Block the day before inpatient starts (typically Monday)
         pre_leave_date = start_date - timedelta(days=1)
@@ -97,7 +100,19 @@ def add_inpatient_block_constraints(model,
         
         # Block the Friday after inpatient ends
         post_leave_date = start_date + timedelta(days=10)
-        blocked_dates[provider].add(post_leave_date) 
+        blocked_dates[provider].add(post_leave_date)
+        
+        # Block Tuesday AM after inpatient ends (Tuesday after the Friday)
+        # This is day 7 after inpatient start (start_date + 7 days)
+        tuesday_after_inpatient = start_date + timedelta(days=7)
+        
+        # Special exception: Don't block Tuesday AM for any provider if on peds inpatient
+        if inpatient_type == 'peds':
+            tuesday_am_exceptions.add((provider, tuesday_after_inpatient))
+        else:
+            # For all other cases, we'll handle Tuesday AM blocking separately
+            # since we only want to block the morning session, not the whole day
+            pass
 
     # Block all inpatient dates (Tuesday–Monday inclusive)
     for _, row in inpatient_days_df.iterrows():
@@ -105,12 +120,31 @@ def add_inpatient_block_constraints(model,
         d = row['date']
         blocked_dates[provider].add(d)
 
-    # Apply constraints
+    # Apply constraints for blocked dates (all sessions)
     for provider, dates in blocked_dates.items():
         for d in dates:
             for session in shift_vars.get(provider, {}).get(d, {}):
                 model.Add(shift_vars[provider][d][session] == 0)
 
+    # Handle Tuesday AM blocking separately (only morning session)
+    for _, row in inpatient_starts_df.iterrows():
+        provider = row['provider']
+        start_date = row['start_date']
+        inpatient_type = row['inpatient_type']
+        
+        # Calculate Tuesday after inpatient
+        tuesday_after_inpatient = start_date + timedelta(days=7)
+        
+        # Check if this provider/date combination should be exempted
+        if (provider, tuesday_after_inpatient) in tuesday_am_exceptions:
+            continue
+            
+        # Block only the morning session on Tuesday after inpatient
+        if (provider in shift_vars and 
+            tuesday_after_inpatient in shift_vars[provider] and 
+            'morning' in shift_vars[provider][tuesday_after_inpatient]):
+            model.Add(shift_vars[provider][tuesday_after_inpatient]['morning'] == 0)
+            
 def add_clinic_count_constraints(model,
                                  shift_vars,
                                  provider_config,

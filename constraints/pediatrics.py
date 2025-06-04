@@ -124,29 +124,30 @@ def add_inpatient_block_constraints(model,
         d = row['date']
         blocked_dates[provider].add(d)
 
-    # Apply constraints
+    # Apply constraints - ONLY block clinic sessions, not call
     for provider, dates in blocked_dates.items():
         for d in dates:
             for session in shift_vars.get(provider, {}).get(d, {}):
-                model.Add(shift_vars[provider][d][session] == 0)
+                # Skip call sessions - let add_call_constraints() handle those
+                if session != 'call':
+                    model.Add(shift_vars[provider][d][session] == 0)
 
 def add_call_constraints(model,
                          shift_vars,
                          leave_df,
-                         inpatient_days_df,
                          inpatient_starts_df, 
                          clinic_rules,
                          provider_config):
     """
     Enforces pediatric call scheduling constraints:
-    - Exactly one provider on call each call day
+    - Exactly one provider on call each day
+    - Inpatient pediatrics provider always and only take call Friday and Saturday 
     - No call the day before or the day of leave
-    - No call while on inpatient duty
     - For weeks with federal holidays:
         - If holiday is M-Th, same provider takes call on day before and day of holiday
         - If holiday is Fri, same provider takes call on day before holiday and following Sunday
-    - No back-to-back call nights (unless during holiday weeks with M-Th holiday)
-    - Penalty for assigning same provider to call twice in a week (unless holiday coverage)
+    - No back-to-back call nights M-Th unless holiday falls on one of those days
+    - Penalty for assigning same provider to call twice Su-Th, unless holiday coverage
     - Fracture clinic providers cannot take call on Tuesdays (to preserve Wednesday availability)
 
     Parameters:
@@ -157,14 +158,14 @@ def add_call_constraints(model,
     shift_vars : dict
         Nested dict of binary decision variables: shift_vars[provider][date][session].
 
+    calendar : dict
+        Dictionary from generate_pediatric_calendar() with call sessions.
+
     leave_df : pd.DataFrame
         Leave request data with columns ['provider', 'date'].
 
-    inpatient_days_df : pd.DataFrame
-        Inpatient assignment data with columns ['provider', 'date'].
-
     inpatient_starts_df : pd.DataFrame
-        Inpatient start assignment with columns ['provider', 'start_date'].
+        Inpatient start assignment with columns ['provider', 'start_date', 'inpatient_type'].
 
     clinic_rules : dict
         Parsed clinic-level rules from the YAML.
@@ -172,258 +173,349 @@ def add_call_constraints(model,
     provider_config : dict
         Parsed provider-level information from the YAML (eg., config['providers']). 
     """
+    # ========================================================================
+    # SECTION A: DATA PREPARATION & SETUP
+    # ========================================================================
     # Initialize objective terms for soft constraints
     objective_terms = []
     
-    # Extract holiday dates
+    # A1. Extract basic data
     holiday_dates = set(clinic_rules.get('holiday_dates', []))
-
-    # Identify fracture clinic providers
+    
     fracture_providers = [
         provider for provider, config in provider_config.items()
         if config.get('fracture_clinic', False)
     ]
     
-    # Create a mapping of dates to providers on leave
-    leave_dates = defaultdict(set)
+    # Get all dates that have call sessions
+    call_dates = set()
+    for provider in shift_vars:
+        for date in shift_vars[provider]:
+            if 'call' in shift_vars[provider][date]:
+                call_dates.add(date)
+    
+    # A2. Create blocking sets
+    # Leave blocking 
+    leave_blocked_dates = defaultdict(set)
     for _, row in leave_df.iterrows():
         provider = row['provider']
-        leave_date = row['date'].date() if hasattr(row['date'], 'date') else row['date']
+        leave_date = row['date']
         
         # Block call on leave date
-        leave_dates[leave_date].add(provider)
+        leave_blocked_dates[leave_date].add(provider)
         
         # Block call on day before leave
         day_before_leave = leave_date - timedelta(days=1)
-        leave_dates[day_before_leave].add(provider)
+        leave_blocked_dates[day_before_leave].add(provider)
     
-    # Create a mapping of dates to providers on inpatient duty
-    inpatient_dates = defaultdict(set)
-    for _, row in inpatient_days_df.iterrows():
-        provider = row['provider']
-        inpatient_date = row['date'].date() if hasattr(row['date'], 'date') else row['date']
-
-        # Block call on inpatient dates
-        inpatient_dates[inpatient_date].add(provider)
-
-    # Use inpatient_starts_df to block call on Sunday and Monday before inpatient
-    # and Thursday and Friday after inpatient ends
+    inpatient_blocked_dates = defaultdict(set)
+    # Process inpatient assignments based on type
     for _, row in inpatient_starts_df.iterrows():
         provider = row['provider']
-        inpatient_start = row['start_date'].date() if hasattr(row['start_date'], 'date') else row['start_date']
+        inpatient_start = row['start_date']  # This is Tuesday (day 0)
+        inpatient_type = row['inpatient_type']
         
-        # Block Sunday before inpatient (2 days before start)
-        sunday_before = inpatient_start - timedelta(days = 2)
-        inpatient_dates[sunday_before].add(provider)
-        
-        # Block Monday before inpatient (1 day before start)
-        monday_before = inpatient_start - timedelta(days = 1)
-        inpatient_dates[monday_before].add(provider)
-         
-        # Block Thursday after inpatient (9 days after start)
-        thursday_after = inpatient_start + timedelta(days = 9)
-        inpatient_dates[thursday_after].add(provider)
-        
-        # Block Friday after inpatient (10 days after start)
-        friday_after = inpatient_start + timedelta(days = 10)
-        inpatient_dates[friday_after].add(provider)
-
-    # Create a mapping of eligible dates for call
-    call_vars = defaultdict(dict)
-    for provider in shift_vars:
-        for date in shift_vars[provider]:
-            # Check if "call" is a session for this date
-            if 'call' in shift_vars[provider][date]:
-                if provider not in call_vars[date]:
-                    call_vars[date][provider] = shift_vars[provider][date]['call']
-
-    # Rules 1: Exactly one provider on call each call day
-    for date in call_vars:
-        provider_vars = list(call_vars[date].values())
-        if provider_vars:
-            # Sum of all provider variables for this call date must equal 1
-            model.Add(sum(provider_vars) == 1)
-
-    # Rule 2, 3, and 7: Block call for providers on leave, inpatient duty, or Tuseday if fracture clinic provider 
-    for date, providers in call_vars.items():
-        for provider in providers:
-            # Block call on leave dates
-            if provider in leave_dates[date]:
-                model.Add(call_vars[date][provider] == 0)
-            
-            # Block call on inpatient dates
-            if provider in inpatient_dates[date]:
-                model.Add(call_vars[date][provider] == 0)
-
-            #  Block fracture clinic providers from Tuesday call
-            if provider in fracture_providers and date.strftime('%A') == 'Tuesday':
-                model.Add(call_vars[date][provider] == 0)
-
-    # Find dates where call sessions exist, sorted by date
-    call_dates = sorted(call_vars.keys())
+        if inpatient_type == 'peds':
+            # PEDIATRIC INPATIENT: Block from ALL call on specific days
+            # Sunday (-2), Monday (-1), Tuesday (0), Wednesday (1), Thursday (2), 
+            # Sunday (5), Monday (6), Thursday (8), Friday (9)
+            block_days = [-2, -1, 0, 1, 2, 5, 6, 8, 9]
+            for day_offset in block_days:
+                block_date = inpatient_start + timedelta(days=day_offset)
+                inpatient_blocked_dates[block_date].add(provider)
+                
+        else:  # Adult inpatient or any other type
+            # ADULT INPATIENT: Block from ALL call on all relevant days
+            # Sunday (-2), Monday (-1), Tuesday (0), Wednesday (1), Thursday (2), 
+            # Friday (3), Saturday (4), Sunday (5), Monday (6), Thursday (8), Friday (9)
+            block_days = [-2, -1, 0, 1, 2, 3, 4, 5, 6, 8, 9]
+            for day_offset in block_days:
+                block_date = inpatient_start + timedelta(days=day_offset)
+                inpatient_blocked_dates[block_date].add(provider)
     
-   # Create a mapping of week to dates with call
-    week_to_dates = defaultdict(list)
-    for d in call_dates:
-        week_key = get_schedule_week_key(d) 
-        week_to_dates[week_key].append(d)
+    # A3. Create Friday/Saturday assignment mapping
+    friday_saturday_assignments = {}  
+    
+    # Assign pediatric inpatient providers to Friday/Saturday
+    for _, row in inpatient_starts_df.iterrows():
+        provider = row['provider']
+        inpatient_start = row['start_date']  # Tuesday (day 0)
+        inpatient_type = row['inpatient_type']
+        
+        if inpatient_type == 'peds':
+            # ASSIGN Friday (3) and Saturday (4)
+            friday_date = inpatient_start + timedelta(days=3)
+            saturday_date = inpatient_start + timedelta(days=4)
+            
+            friday_saturday_assignments[friday_date] = provider
+            friday_saturday_assignments[saturday_date] = provider
+
+    # ========================================================================
+    # SECTION B: HARD CONSTRAINTS
+    # ========================================================================
+    
+    # B1. Exactly one provider on call each day
+    for date in call_dates:
+        # Get all providers who have call variables for this date
+        providers_with_call = [
+            provider for provider in shift_vars
+            if date in shift_vars[provider] and 'call' in shift_vars[provider][date]
+        ]
+        
+        if providers_with_call:
+            # Sum of all call variables for this date must equal 1
+            call_vars_for_date = [shift_vars[provider][date]['call'] for provider in providers_with_call]
+            model.Add(sum(call_vars_for_date) == 1)
+    
+    # B2. Friday/Saturday inpatient assignment
+    for date, assigned_provider in friday_saturday_assignments.items():
+        # The assigned provider MUST take call on this date
+        if (assigned_provider in shift_vars and 
+            date in shift_vars[assigned_provider] and 
+            'call' in shift_vars[assigned_provider][date]):
+            model.Add(shift_vars[assigned_provider][date]['call'] == 1)
+    
+    # B3. Blocking constraints
+    for date in call_dates:
+        day_of_week = date.strftime('%A')
+        
+        for provider in shift_vars:
+            if date in shift_vars[provider] and 'call' in shift_vars[provider][date]:
+                call_var = shift_vars[provider][date]['call']
+                
+                # B3.1: Block providers on leave (affects ALL call)
+                if provider in leave_blocked_dates[date]:
+                    model.Add(call_var == 0)
+                
+                # B3.2: Block inpatient providers
+                if provider in inpatient_blocked_dates[date]:
+                    model.Add(call_var == 0)
+                
+                # B3.3: Block fracture clinic providers from Tuesday call
+                if provider in fracture_providers and day_of_week == 'Tuesday':
+                    model.Add(call_var == 0)
+
+    # ========================================================================
+    # SECTION C: CALL RULES FOR SUNDAY-THURSDAY ONLY
+    # ========================================================================
+    
+    # Filter to Sunday-Thursday call dates only 
+    sun_thu_call_dates = [
+        date for date in call_dates 
+        if date.strftime('%A') in ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday']
+    ]
+    
+    # C1. Holiday pairing rules 
+    for holiday in holiday_dates:
+        holiday_day = holiday.strftime('%A')
+            
+        # For M-Th holidays: same provider takes call on day before and day of holiday
+        if holiday_day in ['Monday', 'Tuesday', 'Wednesday', 'Thursday']:
+            day_before = holiday - timedelta(days=1)
+            
+            # Get providers who can take call on both dates (and aren't blocked)
+            providers_both_days = []
+            for provider in shift_vars:
+                if (day_before in shift_vars[provider] and 'call' in shift_vars[provider][day_before] and
+                    holiday in shift_vars[provider] and 'call' in shift_vars[provider][holiday] and
+                    # Check if provider is NOT blocked on either day
+                    provider not in inpatient_blocked_dates[day_before] and
+                    provider not in inpatient_blocked_dates[holiday] and
+                    provider not in leave_blocked_dates[day_before] and
+                    provider not in leave_blocked_dates[holiday]):
+                    providers_both_days.append(provider)
+                
+            # Enforce same provider constraint
+            for provider in providers_both_days:
+                takes_before = shift_vars[provider][day_before]['call']
+                takes_holiday = shift_vars[provider][holiday]['call']
+                    
+                # If provider takes call on day before, must take it on holiday too
+                model.Add(takes_holiday == takes_before)
+        
+        # For Friday holidays: same provider takes call on Thursday and following Sunday
+        elif holiday_day == 'Friday':
+            thursday_before = holiday - timedelta(days=1)
+            sunday_after = holiday + timedelta(days=2)
+            
+            # Get providers who can take call on both dates (and aren't blocked)
+            providers_both_days = []
+            for provider in shift_vars:
+                if (thursday_before in shift_vars[provider] and 'call' in shift_vars[provider][thursday_before] and
+                    sunday_after in shift_vars[provider] and 'call' in shift_vars[provider][sunday_after] and
+                    # Check if provider is NOT blocked on either day
+                    provider not in inpatient_blocked_dates[thursday_before] and
+                    provider not in inpatient_blocked_dates[sunday_after] and
+                    provider not in leave_blocked_dates[thursday_before] and
+                    provider not in leave_blocked_dates[sunday_after]):
+                    providers_both_days.append(provider)
+    
+            # Enforce same provider constraint
+            for provider in providers_both_days:
+                takes_thursday = shift_vars[provider][thursday_before]['call']
+                takes_sunday = shift_vars[provider][sunday_after]['call']
+                
+                # If provider takes call on Thursday, must take it on Sunday too
+                model.Add(takes_sunday == takes_thursday)
+    
+    # C2. Back-to-back prevention (only for Sunday-Thursday outpatient call)
+    
+    # Group outpatient dates by week
+    outpatient_weeks = defaultdict(list)
+    for date in sorted(sun_thu_call_dates):
+        week_key = get_schedule_week_key(date)
+        outpatient_weeks[week_key].append(date)
     
     # Process each week
-    for week_key, dates in week_to_dates.items():
-        # Find holidays in this week
-        week_holidays = [d for d in holiday_dates if get_schedule_week_key(d) == week_key]
+    for week_start, week_dates in outpatient_weeks.items():
+        # Find holidays in this outpatient week
+        week_holidays = [d for d in holiday_dates if d in week_dates]
         
-        # Rule 4: Special holiday call scheduling
-        if week_holidays:
-            for holiday in week_holidays:
-                day_of_week = holiday.strftime('%A')
-                
-                # For M-Th holidays, same provider does call on day before and day of holiday
-                if day_of_week in ['Monday', 'Tuesday', 'Wednesday', 'Thursday']:
-                    day_before = holiday - timedelta(days = 1)
-                    
-                    # Check if both dates have call sessions
-                    if day_before in call_vars and holiday in call_vars:
-                        for provider in set(call_vars[day_before].keys()) & set(call_vars[holiday].keys()):
-                            # Create indicator that provider takes call on day before
-                            takes_before = call_vars[day_before][provider]
-                            
-                            # Create indicator that provider takes call on holiday
-                            takes_holiday = call_vars[holiday][provider]
-                            
-                            # If provider takes call on day before, must take it on holiday too
-                            model.Add(takes_holiday == 1).OnlyEnforceIf(takes_before)
-                            model.Add(takes_before == 1).OnlyEnforceIf(takes_holiday)
-                
-                # For Friday holidays, same provider does call on Thursday and Sunday
-                elif day_of_week == 'Friday':
-                    thursday = holiday - timedelta(days = 1)
-                    sunday_after = holiday + timedelta(days = 2)
-                    
-                    # Check if both dates have call sessions
-                    if thursday in call_vars and sunday_after in call_vars:
-                        for provider in set(call_vars[thursday].keys()) & set(call_vars[sunday_after].keys()):
-                            # Create indicator that provider takes call on Thursday
-                            takes_thursday = call_vars[thursday][provider]
-                            
-                            # Create indicator that provider takes call on Sunday
-                            takes_sunday = call_vars[sunday_after][provider]
-                            
-                            # If provider takes call on Thursday, must take it on Sunday too
-                            model.Add(takes_sunday == 1).OnlyEnforceIf(takes_thursday)
-                            model.Add(takes_thursday == 1).OnlyEnforceIf(takes_sunday)
-            
-            # Skip back-to-back checks for holiday weeks with M-Th holidays
-            mon_to_thu_holiday = any(h.strftime('%A') in ['Monday', 'Tuesday', 'Wednesday', 'Thursday'] 
-                                     for h in week_holidays)
-            if mon_to_thu_holiday:
-                continue
-
-        # Rule 5: No back-to-back call nights (except during holiday weeks with M-Th holiday)
-        for i in range(len(dates) - 1):
-            curr_date = dates[i]
-            next_date = dates[i + 1]
+        # Skip back-to-back enforcement if there's a M-Th holiday this week
+        # (because holiday pairing rules take precedence)
+        mon_to_thu_holiday = any(h.strftime('%A') in ['Monday', 'Tuesday', 'Wednesday', 'Thursday'] 
+                                for h in week_holidays)
+        if mon_to_thu_holiday:
+            continue
+        
+        # Enforce no back-to-back constraint within the week
+        for i in range(len(week_dates) - 1):
+            curr_date = week_dates[i]
+            next_date = week_dates[i + 1]
             
             # Check if consecutive days
             if (next_date - curr_date).days == 1:
-                for provider in set(call_vars[curr_date].keys()) & set(call_vars[next_date].keys()):
-                    # Create indicator variables
-                    takes_curr = call_vars[curr_date][provider]
-                    takes_next = call_vars[next_date][provider]
-                    
-                    # No back-to-back calls
-                    model.Add(takes_curr + takes_next <= 1)
-    
-    # Handle week transitions (Sunday to Monday)
-    sorted_week_keys = sorted(week_to_dates.keys())
-    for i in range(len(sorted_week_keys) - 1):
-        current_week = sorted_week_keys[i]
-        next_week = sorted_week_keys[i + 1]
-        
-        # Get the last day of current week (if it exists)
-        if week_to_dates[current_week]:
-            last_day_current = max(week_to_dates[current_week])
-            
-            # Get the first day of next week (if it exists)
-            if week_to_dates[next_week]:
-                first_day_next = min(week_to_dates[next_week])
+                # Get providers who can take call on both dates
+                providers_both_days = []
+                for provider in shift_vars:
+                    if (curr_date in shift_vars[provider] and 'call' in shift_vars[provider][curr_date] and
+                        next_date in shift_vars[provider] and 'call' in shift_vars[provider][next_date]):
+                        providers_both_days.append(provider)
                 
-                # Check if these are consecutive days (Sunday-Monday transition)
-                if (first_day_next - last_day_current).days == 1:
-                    # Check if this is a holiday transition that should be excluded
-                    is_holiday_transition = False
-                    
-                    # If last day is Sunday and first day is a Monday holiday, 
-                    # check for Friday holiday exception
-                    if (last_day_current.strftime('%A') == 'Sunday' and 
-                        first_day_next.strftime('%A') == 'Monday' and
-                        first_day_next in holiday_dates):
-                        # Find if there was a Friday holiday in the previous week
-                        friday_before = last_day_current - timedelta(days=2)
-                        if friday_before in holiday_dates:
-                            is_holiday_transition = True
-                    
-                    # If not a special holiday transition, enforce no back-to-back
-                    if not is_holiday_transition:
-                        for provider in set(call_vars[last_day_current].keys()) & set(call_vars[first_day_next].keys()):
-                            # Create indicator variables
-                            takes_last = call_vars[last_day_current][provider]
-                            takes_first = call_vars[first_day_next][provider]
-                            
-                            # No back-to-back calls across week boundaries
-                            model.Add(takes_last + takes_first <= 1)
+                # No back-to-back calls
+                for provider in providers_both_days:
+                    takes_curr = shift_vars[provider][curr_date]['call']
+                    takes_next = shift_vars[provider][next_date]['call']
+                    model.Add(takes_curr + takes_next <= 1)
+
+    # ========================================================================
+    # SECTION D: SOFT CONSTRAINTS (PENALTIES)
+    # ========================================================================
     
-    # Rule 6: Penalty for same provider having call twice in a "call week" (Sunday-Thursday)
-    # Group call dates into "call weeks" that run Sunday-Thursday
+    # D1. Multiple call penalty for Sunday-Thursday call
+    # Penalty for same provider having call twice in a "call week" (Sunday-Thursday)
+    
+    # Group Sunday-Thursday call dates into "call weeks" 
     call_weeks = defaultdict(list)
-    
-    for call_date in sorted(call_vars.keys()):
-        day_of_week = call_date.strftime('%A')
-        if day_of_week in ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday']:
-            # For grouping, use the Sunday that starts this week, which is what our
-            # get_schedule_week_key function returns
-            week_start_key = get_schedule_week_key(call_date)
-            # Extract just the date component for the Sunday
-            week_start = call_date - timedelta(days=call_date.weekday() + 1 if call_date.weekday() < 6 else 0)
-            
-            # Add to the appropriate call week
-            call_weeks[week_start].append(call_date)
+    for date in sorted(sun_thu_call_dates):
+        week_key = get_schedule_week_key(date)
+        call_weeks[week_key].append(date)
     
     # Process each "call week" (Sunday-Thursday)
-    for week_start, dates in call_weeks.items():
+    for week_start, week_dates in call_weeks.items():
         # Find holidays in this call week
-        call_week_holidays = [d for d in holiday_dates if d in dates]
+        call_week_holidays = [d for d in holiday_dates if d in week_dates]
         
         # Get all providers who could take call this week
         week_providers = set()
-        for d in dates:
-            week_providers.update(call_vars[d].keys())
+        for d in week_dates:
+            for provider in shift_vars:
+                if provider in shift_vars and d in shift_vars[provider] and 'call' in shift_vars[provider][d]:
+                    week_providers.add(provider)
         
         # For each provider, create penalty for multiple call assignments
         for provider in week_providers:
             # Collect valid call variables for this provider in this call week
-            provider_call_vars = [
-                call_vars[d][provider] for d in dates 
-                if provider in call_vars[d]
-            ]
+            provider_call_vars = []
+            for d in week_dates:
+                if (provider in shift_vars and 
+                    d in shift_vars[provider] and 
+                    'call' in shift_vars[provider][d]):
+                    provider_call_vars.append(shift_vars[provider][d]['call'])
             
             # Skip if fewer than 2 possible call days
             if len(provider_call_vars) < 2:
                 continue
             
             # Create penalty for more than one call assignment
+            week_key_str = f"{week_start[0]}_{week_start[1]}_{week_start[2]}"
             penalty_var = model.NewIntVar(0, len(provider_call_vars) - 1, 
-                                         f"multiple_call_penalty_{provider}_{week_start.isoformat()}")
+                                         f"multiple_call_penalty_{provider}_{week_key_str}")
             
             # Sum of calls should be <= 1 + penalty
             model.Add(sum(provider_call_vars) <= 1 + penalty_var)
             
             # Add penalty to objective with appropriate weight
-            # (unless this is for holiday coverage which is enforced by Rule 3)
+            # No penalty during holiday weeks (since holiday pairing is required)
             if not call_week_holidays:
                 objective_terms.append(penalty_var * 100) 
-    
+
     return objective_terms
+
+def add_monthly_call_limits(model, 
+                            shift_vars, 
+                            calendar, 
+                            provider_config):
+    """
+    Limits specific providers to a maximum number of calls per rolling 28-day period.
+    
+    This constraint prevents call clustering by creating overlapping 28-day windows
+    throughout the scheduling period. 
+
+    Parameters:
+    ----------
+    model : cp_model.CpModel
+        OR-Tools model.
+
+    shift_vars : dict
+        Nested dict of binary decision variables: shift_vars[provider][date][session].
+
+    calendar : dict
+        Dictionary from generate_pediatric_calendar() with call sessions.
+
+    provider_config : dict
+        Parsed provider-level information from the YAML (e.g., config['providers']).
+        Expected to contain 'max_calls_per_month' for providers with call limits.
+    """
+    # Get all dates that have call sessions
+    call_dates = sorted([d for d in calendar.keys() if 'call' in calendar[d]])
+    
+    if not call_dates:
+        return  # No call dates to constrain
+    
+    # Identify providers with monthly call limits
+    limited_providers = [
+        provider for provider, config in provider_config.items()
+        if config.get('max_calls_per_month') is not None and config.get('max_calls_per_month') > 0
+    ]
+    
+    if not limited_providers:
+        return  # No providers have call limits
+    
+    # For each provider with a call limit
+    for provider in limited_providers:
+        max_monthly_calls = provider_config[provider]['max_calls_per_month']
+        
+        # Create a constraint for every possible 28-day rolling window
+        windows_created = 0
+        for start_date in call_dates:
+            end_date = start_date + timedelta(days=27)  # 28 days total (inclusive)
+            
+            # Only create constraint if the entire window fits within our scheduling period
+            if end_date <= max(call_dates):
+                # Find all call variables for this provider within the window
+                window_call_vars = []
+                for call_date in call_dates:
+                    if start_date <= call_date <= end_date:
+                        if (provider in shift_vars and 
+                            call_date in shift_vars[provider] and 
+                            'call' in shift_vars[provider][call_date]):
+                            window_call_vars.append(shift_vars[provider][call_date]['call'])
+                
+                # Add constraint: sum of calls in this 28-day window ≤ max_monthly_calls
+                if window_call_vars:
+                    model.Add(sum(window_call_vars) <= max_monthly_calls)
+                    windows_created += 1
 
 def add_post_call_afternoon_constraints(model, 
                                         shift_vars, 
@@ -509,8 +601,7 @@ def add_clinic_count_constraints(model,
         Parsed provider-level information from the YAML (eg., config['providers']). 
 
     inpatient_starts_df : pd.DataFrame
-        Parsed DataFrame from inpatient.csv with columns ['provider', 'start_date'], where start_date is a 
-        datetime.date.
+        Parsed DataFrame from inpatient.csv with columns ['provider', 'start_date', 'inpatient_type']
     """
     # Initialize objective terms list if not already done elsewhere
     objective_terms = []
@@ -591,7 +682,7 @@ def add_rdo_constraints(model,
         Leave request data. Must have columns ['provider', 'date'].
 
     inpatient_days_df : pd.DataFrame
-        Inpatient assignment days. Must have columns ['provider', 'date'].
+        Inpatient assignment days. Must have columns ['provider', 'date', 'inpatient_type'].
 
     clinic_rules : dict
         Parsed clinic-level rules from the YAML.
@@ -605,7 +696,7 @@ def add_rdo_constraints(model,
     provider_roles = {p: info['role'] for p, info in provider_config.items()}
     rdo_preferences = {p: info.get('rdo_preference') for p, info in provider_config.items()}
 
-    # Define providers needing RDO (exclude family practice and med/peds)
+    # Define providers needing RDO 
     providers_needing_rdo = [
         p for p in provider_roles.keys() 
         if provider_config.get(p, {}).get('needs_rdo', True)  # Default to True if not specified
