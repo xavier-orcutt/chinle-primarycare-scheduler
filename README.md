@@ -18,25 +18,7 @@ To solve this efficiently, the scheduler uses [CP-SAT](https://developers.google
 
 ## How the Scheduler Works 
 
-The Chinle Primary Care Scheduler is built in two layers:
-
-### 1. The Scheduling Software 
-The scheduling software converts the primary care department clinic rules into computer logic. It accounts for each provider’s schedule preferences, clinic workload limits, time off, inpatient assignments, and federal holidays.
-
-### 2. The Optimization Engine (CP-SAT)
-The scheduling software uses CP-SAT for solving the scheduling puzzle. CP-SAT is able to try thousands of scheduling combinations in seconds, remember all rules, and find the best solution among all the valid possibilities. 
-
-## Scheduler Inputs 
-
-The scheduler relies on three main inputs:
-
-1. **Calendar** – the date range over which the schedule will be built (see `utils/calendar.py`).
-2. **Data** – inpatient assignments and leave requests (see `data/inpatient.csv` and `data/leave_requests.csv`).
-3. **Rules** – codified constraints that define how providers can be scheduled.
-
-### Rules
-
-The scheduler enforces core rules through a three-layer structure:
+The scheduling software converts the primary care department clinic rules into computer logic through a three-layer structure: 
 
 1. **Plain-English Documentation** - Core scheduling policies established by Chinle administration are documented in `docs/clinic_rules.pdf` and `docs/call_rules.pdf`.
 2. **Configuration Files** - These policies are codified in human-readable YAML files (`config/` folder) containing both clinic-level rules (staffing minimums, holiday dates) and provider-specific rules (workload limits, RDO preferences). This structure makes it easy to adjust existing constraints without programming knowledge, add new providers or modify existing provider parameters, and maintain separate rule sets for each department.
@@ -47,6 +29,16 @@ The scheduler enforces core rules through a three-layer structure:
     * **Soft constraints** with penalties that guide the optimizer toward preferable solutions while maintaining flexibility when strict adherence isn't possible (e.g., ensuring that providers work as close as possible to their designated weekly clinic amount).
 
     All constraints are considered simultaneously by CP-SAT during solving. This approach ensures the scheduler can find workable solutions even when competing requirements make perfect solutions impossible.
+
+The scheduling software uses CP-SAT for solving the scheduling puzzle. CP-SAT is able to try thousands of scheduling combinations in seconds, remember all rules, and find the best solution among all the valid possibilities. 
+
+## Scheduler Inputs 
+
+The scheduler relies on three main inputs:
+
+1. **Date Range** – the date range over which the schedule will be built (see `utils/calendar.py`).
+2. **Leave Requests** – requested time off for department providers (see `data/leave_requests.csv`).
+3. **Inpatient Assignments** – scheduled inpatient rotations for department providers (see `data/inpatient.csv`).
 
 ## Schedule Generation
 
