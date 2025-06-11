@@ -28,9 +28,7 @@ The scheduling software converts the primary care department clinic rules into c
     * **Hard constraints** that cannot be violated (e.g., providers cannot work clinic during inpatient).
     * **Soft constraints** with penalties that guide the optimizer toward preferable solutions while maintaining flexibility when strict adherence isn't possible (e.g., ensuring that providers work as close as possible to their designated weekly clinic amount).
 
-    All constraints are considered simultaneously by CP-SAT during solving. This approach ensures the scheduler can find workable solutions even when competing requirements make perfect solutions impossible.
-
-The scheduling software uses CP-SAT for solving the scheduling puzzle. CP-SAT is able to try thousands of scheduling combinations in seconds, remember all rules, and find the best solution among all the valid possibilities. 
+The scheduling software uses CP-SAT for solving the scheduling puzzle. CP-SAT is able to try thousands of scheduling combinations in seconds and find the best solution among all the valid possibilities. All constraints are considered simultaneously by CP-SAT during solving. This approach ensures the scheduler can find workable solutions even when competing requirements make perfect solutions impossible.
 
 ## Scheduler Inputs 
 
