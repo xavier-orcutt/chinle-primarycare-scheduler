@@ -62,7 +62,8 @@ def calculate_consecutive_clinics(provider, week_dates, shift_vars, solver, cale
 
 def create_enhanced_provider_summary(shift_vars, solver, config, calendar):
     """
-    Creates enhanced provider summary with AM/PM split and consecutive clinic tracking.
+    Creates enhanced provider summary with shortened weeks (ie., Monday or Friday off), 
+    AM/PM split, and consecutive clinic tracking.
     
     Parameters:
     ----------
@@ -80,14 +81,14 @@ def create_enhanced_provider_summary(shift_vars, solver, config, calendar):
     pd.DataFrame
         Enhanced provider summary DataFrame
     """
-    from collections import defaultdict
-    import pandas as pd
-    
     # Weekly tracking with consecutive
     provider_weekly_data = defaultdict(lambda: defaultdict(lambda: {'total': 0, 'consecutive': 0}))
     
     # Total AM/PM tracking across all dates
     provider_totals = defaultdict(lambda: {'total_AM': 0, 'total_PM': 0})
+
+    # Monday/Friday off tracking
+    provider_monday_friday_off = defaultdict(int)
     
     all_providers = list(config['providers'].keys())
     
@@ -97,28 +98,57 @@ def create_enhanced_provider_summary(shift_vars, solver, config, calendar):
     for day in sorted(calendar.keys()):
         week_key = (day.year, day.isocalendar()[1])
         dates_by_week[week_key].append(day)
-    
+
+    # Filter out weeks that are just a single Sunday (pediatrics edge case)
+    filtered_dates_by_week = {}
+    for week_key, week_dates in dates_by_week.items():
+        # Keep week if it has more than 1 day, or if the single day isn't Sunday
+        if len(week_dates) > 1 or (len(week_dates) == 1 and week_dates[0].strftime('%A') != 'Sunday'):
+            filtered_dates_by_week[week_key] = week_dates
+
+    dates_by_week = filtered_dates_by_week
+
     # Process each week for total sessions and consecutive tracking
     for week_key, week_dates in dates_by_week.items():
         for provider in all_providers:
             total_sessions = 0
+
+            # Track Monday/Friday sessions for this provider this week
+            monday_sessions = 0
+            friday_sessions = 0
             
             # Count total clinic sessions for the week
             for day in week_dates:
+                day_of_week = day.strftime('%A')
+
                 for session in calendar.get(day, []):
                     if session in ['morning', 'afternoon']:
                         if (day in shift_vars[provider] and 
                             session in shift_vars[provider][day] and
                             solver.Value(shift_vars[provider][day][session]) == 1):
                             total_sessions += 1
+
+                            # Count Monday/Friday sessions
+                            if day_of_week == 'Monday':
+                                monday_sessions += 1
+                            elif day_of_week == 'Friday':
+                                friday_sessions += 1
             
             # Calculate consecutive sessions for the week
-            consecutive = calculate_consecutive_clinics(provider, week_dates, shift_vars, solver, calendar)
+            consecutive = calculate_consecutive_clinics(provider, 
+                                                        week_dates, 
+                                                        shift_vars, 
+                                                        solver, 
+                                                        calendar)
             
             provider_weekly_data[provider][week_key] = {
                 'total': total_sessions,
                 'consecutive': consecutive
             }
+
+            # Check if provider is off Monday or Friday
+            if monday_sessions == 0 or friday_sessions == 0:
+                provider_monday_friday_off[provider] += 1
     
     # Process all dates for total AM/PM tracking
     for provider in all_providers:
@@ -163,6 +193,9 @@ def create_enhanced_provider_summary(shift_vars, solver, config, calendar):
         
         # Add total sessions
         provider_data['total_sessions'] = total_sessions
+
+        # Add Monday/Friday off count
+        provider_data['monday_or_friday_off'] = provider_monday_friday_off[provider]
         
         # Add total AM/PM columns
         provider_data['total_AM'] = provider_totals[provider]['total_AM']
