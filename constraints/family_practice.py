@@ -529,7 +529,7 @@ def add_rdo_constraints(model,
     # Apply RDO constraints for each provider and week
     for provider, weeks_data in eligible_dates_by_provider_week.items():
 
-        # Check if provicder needs RDO (eg., Brush doesn't)
+        # Check if provicder needs RDO 
         if not provider_config.get(provider, {}).get('needs_rdo', True):
             continue  # Skip providers who don't need RDOs
 

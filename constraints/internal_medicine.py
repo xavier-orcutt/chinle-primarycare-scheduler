@@ -144,7 +144,7 @@ def add_inpatient_block_constraints(model,
             tuesday_after_inpatient in shift_vars[provider] and 
             'morning' in shift_vars[provider][tuesday_after_inpatient]):
             model.Add(shift_vars[provider][tuesday_after_inpatient]['morning'] == 0)
-            
+
 def add_clinic_count_constraints(model,
                                  shift_vars,
                                  provider_config,
@@ -311,6 +311,11 @@ def add_rdo_constraints(model,
 
     # Apply RDO constraints for each provider and week
     for provider, weeks_data in eligible_dates_by_provider_week.items():
+
+        # Check if provicder needs RDO 
+        if not provider_config.get(provider, {}).get('needs_rdo', True):
+            continue  # Skip providers who don't need RDOs
+
         for week, eligible_dates in weeks_data.items():
             # Skip blocked weeks (providers don't get RDO)
             if week in blocked_weeks[provider]:
