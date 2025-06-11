@@ -29,7 +29,7 @@ clinic_rules:
 
   staffing:
     min_providers_per_session: 1
-    max_providers_per_session: 4
+    max_providers_per_session: 5
 
   holiday_dates:
     - 2025-01-01  # New Year's Day
@@ -48,40 +48,48 @@ clinic_rules:
 providers:
   Austin:
     role: NP
-    max_clinics_per_week: 6 
+    max_clinics_per_week: 6
+    needs_rdo: true 
 
   Bia:
     role: MD
     max_clinics_per_week: 6
+    needs_rdo: true
 
   Brush: 
     role: NP
     max_clinics_per_week: 2
-    needs_rdo: false
+    needs_rdo: false            # Only assigned to Friday clinic without RDO 
     friday_only: true
 
   Gelman: 
     role: MD
     max_clinics_per_week: 4
+    needs_rdo: true
   
   Mullenix:
     role: NP
     max_clinics_per_week: 6
+    needs_rdo: true
   
   Powell:
     role: MD
     max_clinics_per_week: 5
+    needs_rdo: true
     fracture_clinic: true
   
   Salay:
     role: MD
     max_clinics_per_week: 6
+    needs_rdo: true
     fracture_clinic: true
   
   Shin:
     role: MD
     max_clinics_per_week: 6
+    needs_rdo: true
   
   Suen:
     role: NP
     max_clinics_per_week: 6
+    needs_rdo: true

@@ -49,32 +49,40 @@ providers:
   Bornstein:
     role: MD
     max_clinics_per_week: 4 
+    needs_rdo: true
   
   Mcrae:
     role: PA
     max_clinics_per_week: 6
+    needs_rdo: true
 
   Miles: 
     role: MD
     max_clinics_per_week: 3
+    needs_rdo: true
     rdo_preference: Friday
   
   Orcutt:
     role: MD
     max_clinics_per_week: 5
+    needs_rdo: true
   
   Selig:
     role: NP
     max_clinics_per_week: 6
+    needs_rdo: true
   
   Stewart:
     role: MD
     max_clinics_per_week: 4
+    needs_rdo: true
   
   Tanay:
     role: NP
     max_clinics_per_week: 6
+    needs_rdo: true
   
   Wadlin:
     role: MD
     max_clinics_per_week: 5
+    needs_rdo: true
