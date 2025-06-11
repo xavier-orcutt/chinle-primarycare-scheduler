@@ -85,15 +85,16 @@ The primary output is the complete schedule showing which providers are assigned
 
 A summary of each provider's clinic workload is also generated:
 
-|  provider  | week_32 | week_33 | week_34 | week_35 | total_sessions | total_AM | total_PM |
-|------------|---------|---------|---------|---------|----------------|----------|----------|
-| Evil       |   5,3   |   0,0   |   3,2   |   6,4   |       14       |    7     |    7     |
-| House      |   4,2   |   4,3   |   6,6   |   0,0   |       14       |    7     |    7     |
-| Spaceman   |   3,2   |   6,6   |   6,3   |   6,6   |       21       |    10    |    11    |
+|  provider  | week_32 | week_33 | week_34 | week_35 | total_sessions | monday_or_friday_off | total_AM | total_PM |
+|------------|---------|---------|---------|---------|----------------|----------------------|----------|----------|
+| Evil       |   5,3   |   0,0   |   3,2   |   6,4   |       14       |          3           |    7     |    7     |
+| House      |   4,2   |   4,3   |   6,6   |   0,0   |       14       |          3           |    7     |    7     |
+| Spaceman   |   3,2   |   6,6   |   6,3   |   6,6   |       21       |          2           |    10    |    11    |
 
 **Column Explanations:**
 - **Week columns (e.g., week_32)**: Show total sessions and maximum consecutive sessions for that week in format "total, consecutive"
 - **total_sessions**: Total clinic sessions across all weeks
+- **monday_or_friday_off**: Total weeks with either Monday or Friday off
 - **total_AM**: Total morning clinic sessions
 - **total_PM**: Total afternoon clinic sessions
 
@@ -162,42 +163,40 @@ A full walkthrough of how the Internal Medicine, Family Practice, and Pediatric 
 ## Directory Architecture
 
 ```bash
-├── config/                        # Clinic and provider rules 
+├── config/                             # Clinic and provider rules 
 │   ├── family_practice.yml
 │   ├── internal_medicine.yml
 │   └── pediatrics.yml
-├── constraints/                   # Scheduling rules and constraint logic
+├── constraints/                        # Scheduling rules and constraint logic
 │   ├── family_practice.py
 │   ├── internal_medicine.py
 │   └── pediatrics.py
-├── data/                          # Input data
+├── data/                               # Input data
 │   ├── inpatient.csv
 │   └── leave_requests.csv
-├── docs/                          # Plain-English summary of scheduling rules and calendar output example
+├── docs/                               # Plain-English summary of scheduling rules and calendar output example
 │   ├── images/                            
 │   │   └── example_calendar.png
 │   ├── clinic_rules.pdf
 │   └── call_rules.pdf     
-├── engine/                        # Entry point for running the scheduler
+├── engine/                             # Entry point for running the scheduler
 │   └── engine.py
-├── notebooks/                     # Jupyter notebooks for running the scheduler 
+├── notebooks/                          # Jupyter notebooks for running the scheduler 
 │   └── august_schedule.ipynb
-├── output/                        # Schedule output for August by department saved as CSV and HTML files
-│   └── august/
-│       ├── family_practice/
-│       │   ├── calendar.html
-│       │   ├── provider_summary_df.csv
-│       │   └── schedule_df.csv
-│       ├── internal_medicine/
-│       │   ├── calendar.html
-│       │   ├── provider_summary_df.csv
-│       │   └── schedule_df.csv
-│       └── pediatrics/
-│           ├── calendar.html
-│           ├── call_summary_df.csv 
-│           ├── provider_summary_df.csv
-│           └── schedule_df.csv
-└── utils/                         # Input parsing and calendar creation
+├── output/                             # Schedule output by month and department saved as CSV and HTML files
+│   ├── month_1/
+│   │   ├── family_practice/
+│   │   ├── internal_medicine/
+│   │   └── pediatrics/
+│   ├── month_2/
+│   ├── month_3/
+│   └── month_4/
+│       └──[each department folder contains:]
+│          ├── calendar.html
+│          ├── provider_summary_df.csv
+│          ├── schedule_df.csv
+           └── call_summary_df.csv      # (Pediatrics only)
+└── utils/                              # Input parsing and calendar creation
     ├── calendar.py
     ├── calendar_formatter.py
     └── parser.py
