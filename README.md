@@ -156,7 +156,7 @@ schedule_df, provider_summary_df, solution_status = create_im_schedule(
 )
 ```
 
-A full walkthrough of how the Internal Medicine, Family Practice, and Pediatric schedules were created for August 2025 can be found in `notebooks/august_schedule.ipynb`.
+A full walkthrough of how the Internal Medicine, Family Practice, and Pediatric schedules were created for August 2025 can be found in `notebooks/august_25.ipynb`.
 
 ## Directory Architecture
 
@@ -180,7 +180,7 @@ A full walkthrough of how the Internal Medicine, Family Practice, and Pediatric 
 ├── engine/                             # Entry point for running the scheduler
 │   └── engine.py
 ├── notebooks/                          # Jupyter notebooks for running the scheduler 
-│   └── august_schedule.ipynb
+│   └── august_25.ipynb
 ├── output/                             # Schedule output by month and department saved as CSV and HTML files
 │   ├── month_1/
 │   │   ├── family_practice/
@@ -193,7 +193,7 @@ A full walkthrough of how the Internal Medicine, Family Practice, and Pediatric 
 │          ├── calendar.html
 │          ├── provider_summary_df.csv
 │          ├── schedule_df.csv
-           └── call_summary_df.csv      # (Pediatrics only)
+           └── call_summary_df.csv      # Pediatrics only
 └── utils/                              # Input parsing and calendar creation
     ├── calendar.py
     ├── calendar_formatter.py
