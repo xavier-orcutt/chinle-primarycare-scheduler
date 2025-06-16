@@ -1,6 +1,6 @@
 date,day_of_week,session,providers,count
-2025-08-04,Monday,morning,"Mcrae,Miles,Orcutt",3
-2025-08-04,Monday,afternoon,"Mcrae,Miles,Orcutt",3
+2025-08-04,Monday,morning,"Mcrae,Miles",2
+2025-08-04,Monday,afternoon,"Mcrae,Miles",2
 2025-08-05,Tuesday,morning,"Miles,Selig,Stewart,Tanay",4
 2025-08-05,Tuesday,afternoon,"Mcrae,Selig,Stewart,Tanay",4
 2025-08-06,Wednesday,morning,"Selig,Stewart,Tanay",3
@@ -32,6 +32,6 @@ date,day_of_week,session,providers,count
 2025-08-26,Tuesday,afternoon,"Selig,Stewart,Tanay,Wadlin",4
 2025-08-27,Wednesday,morning,"Mcrae,Stewart,Tanay,Wadlin",4
 2025-08-27,Wednesday,afternoon,"Bornstein,Selig,Tanay,Wadlin",4
-2025-08-28,Thursday,afternoon,"Mcrae,Selig",2
-2025-08-29,Friday,morning,"Bornstein,Mcrae,Selig,Stewart",4
+2025-08-28,Thursday,afternoon,"Bornstein,Mcrae,Selig",3
+2025-08-29,Friday,morning,"Mcrae,Selig,Stewart",3
 2025-08-29,Friday,afternoon,"Bornstein,Mcrae,Selig",3
