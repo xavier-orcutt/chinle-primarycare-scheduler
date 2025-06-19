@@ -141,6 +141,7 @@ def add_call_constraints(model,
     """
     Enforces pediatric call scheduling constraints:
     - Exactly one provider on call each day
+    - Only providers with takes_call: true are eligible for call assignments
     - Inpatient pediatrics provider always and only take call Friday and Saturday 
     - No call the day before or the day of leave
     - For weeks with federal holidays:
@@ -186,13 +187,20 @@ def add_call_constraints(model,
         provider for provider, config in provider_config.items()
         if config.get('fracture_clinic', False)
     ]
+
+    # Identify providers who take call
+    call_eligible_providers = [
+        provider for provider, config in provider_config.items()
+        if config.get('takes_call', True)  # Default to True 
+    ]
     
     # Get all dates that have call sessions
     call_dates = set()
     for provider in shift_vars:
-        for date in shift_vars[provider]:
-            if 'call' in shift_vars[provider][date]:
-                call_dates.add(date)
+        if provider in call_eligible_providers:
+            for date in shift_vars[provider]:
+                if 'call' in shift_vars[provider][date]:
+                    call_dates.add(date)
     
     # A2. Create blocking sets
     # Leave blocking 
@@ -201,13 +209,14 @@ def add_call_constraints(model,
         provider = row['provider']
         leave_date = row['date']
         
-        # Block call on leave date
-        leave_blocked_dates[leave_date].add(provider)
+        if provider in call_eligible_providers:
+            # Block call on leave date
+            leave_blocked_dates[leave_date].add(provider)
+            
+            # Block call on day before leave
+            day_before_leave = leave_date - timedelta(days=1)
+            leave_blocked_dates[day_before_leave].add(provider)
         
-        # Block call on day before leave
-        day_before_leave = leave_date - timedelta(days=1)
-        leave_blocked_dates[day_before_leave].add(provider)
-    
     inpatient_blocked_dates = defaultdict(set)
     # Process inpatient assignments based on type
     for _, row in inpatient_starts_df.iterrows():
@@ -215,23 +224,24 @@ def add_call_constraints(model,
         inpatient_start = row['start_date']  # This is Tuesday (day 0)
         inpatient_type = row['inpatient_type']
         
-        if inpatient_type == 'peds':
-            # PEDIATRIC INPATIENT: Block from ALL call on specific days
-            # Sunday (-2), Monday (-1), Tuesday (0), Wednesday (1), Thursday (2), 
-            # Sunday (5), Monday (6), Thursday (8), Friday (9)
-            block_days = [-2, -1, 0, 1, 2, 5, 6, 8, 9]
-            for day_offset in block_days:
-                block_date = inpatient_start + timedelta(days=day_offset)
-                inpatient_blocked_dates[block_date].add(provider)
-                
-        else:  # Adult inpatient or any other type
-            # ADULT INPATIENT: Block from ALL call on all relevant days
-            # Sunday (-2), Monday (-1), Tuesday (0), Wednesday (1), Thursday (2), 
-            # Friday (3), Saturday (4), Sunday (5), Monday (6), Thursday (8), Friday (9)
-            block_days = [-2, -1, 0, 1, 2, 3, 4, 5, 6, 8, 9]
-            for day_offset in block_days:
-                block_date = inpatient_start + timedelta(days=day_offset)
-                inpatient_blocked_dates[block_date].add(provider)
+        if provider in call_eligible_providers:
+            if inpatient_type == 'peds':
+                # PEDIATRIC INPATIENT: Block from ALL call on specific days
+                # Sunday (-2), Monday (-1), Tuesday (0), Wednesday (1), Thursday (2), 
+                # Sunday (5), Monday (6), Thursday (8), Friday (9)
+                block_days = [-2, -1, 0, 1, 2, 5, 6, 8, 9]
+                for day_offset in block_days:
+                    block_date = inpatient_start + timedelta(days=day_offset)
+                    inpatient_blocked_dates[block_date].add(provider)
+                    
+            else:  # Adult inpatient or any other type
+                # ADULT INPATIENT: Block from ALL call on all relevant days
+                # Sunday (-2), Monday (-1), Tuesday (0), Wednesday (1), Thursday (2), 
+                # Friday (3), Saturday (4), Sunday (5), Monday (6), Thursday (8), Friday (9)
+                block_days = [-2, -1, 0, 1, 2, 3, 4, 5, 6, 8, 9]
+                for day_offset in block_days:
+                    block_date = inpatient_start + timedelta(days=day_offset)
+                    inpatient_blocked_dates[block_date].add(provider)
     
     # A3. Create Friday/Saturday assignment mapping
     friday_saturday_assignments = {}  
@@ -242,7 +252,7 @@ def add_call_constraints(model,
         inpatient_start = row['start_date']  # Tuesday (day 0)
         inpatient_type = row['inpatient_type']
         
-        if inpatient_type == 'peds':
+        if provider in call_eligible_providers and inpatient_type == 'peds':
             # ASSIGN Friday (3) and Saturday (4)
             friday_date = inpatient_start + timedelta(days=3)
             saturday_date = inpatient_start + timedelta(days=4)
@@ -258,8 +268,10 @@ def add_call_constraints(model,
     for date in call_dates:
         # Get all providers who have call variables for this date
         providers_with_call = [
-            provider for provider in shift_vars
-            if date in shift_vars[provider] and 'call' in shift_vars[provider][date]
+            provider for provider in call_eligible_providers
+            if (provider in shift_vars and 
+                date in shift_vars[provider] and 
+                'call' in shift_vars[provider][date])
         ]
         
         if providers_with_call:
@@ -279,9 +291,11 @@ def add_call_constraints(model,
     for date in call_dates:
         day_of_week = date.strftime('%A')
         
-        for provider in shift_vars:
-            if date in shift_vars[provider] and 'call' in shift_vars[provider][date]:
-                call_var = shift_vars[provider][date]['call']
+        for provider in call_eligible_providers:
+            if (provider in shift_vars and 
+                date in shift_vars[provider] and 
+                'call' in shift_vars[provider][date]):
+                call_var = shift_vars[provider][date]['call']       
                 
                 # B3.1: Block providers on leave (affects ALL call)
                 if provider in leave_blocked_dates[date]:
@@ -315,15 +329,16 @@ def add_call_constraints(model,
             
             # Get providers who can take call on both dates (and aren't blocked)
             providers_both_days = []
-            for provider in shift_vars:
-                if (day_before in shift_vars[provider] and 'call' in shift_vars[provider][day_before] and
+            for provider in call_eligible_providers:
+                if (provider in shift_vars and
+                    day_before in shift_vars[provider] and 'call' in shift_vars[provider][day_before] and
                     holiday in shift_vars[provider] and 'call' in shift_vars[provider][holiday] and
                     # Check if provider is NOT blocked on either day
                     provider not in inpatient_blocked_dates[day_before] and
                     provider not in inpatient_blocked_dates[holiday] and
                     provider not in leave_blocked_dates[day_before] and
                     provider not in leave_blocked_dates[holiday]):
-                    providers_both_days.append(provider)
+                    providers_both_days.append(provider)        
                 
             # Enforce same provider constraint
             for provider in providers_both_days:
@@ -340,8 +355,9 @@ def add_call_constraints(model,
             
             # Get providers who can take call on both dates (and aren't blocked)
             providers_both_days = []
-            for provider in shift_vars:
-                if (thursday_before in shift_vars[provider] and 'call' in shift_vars[provider][thursday_before] and
+            for provider in call_eligible_providers:
+                if (provider in shift_vars and
+                    thursday_before in shift_vars[provider] and 'call' in shift_vars[provider][thursday_before] and
                     sunday_after in shift_vars[provider] and 'call' in shift_vars[provider][sunday_after] and
                     # Check if provider is NOT blocked on either day
                     provider not in inpatient_blocked_dates[thursday_before] and
@@ -387,8 +403,9 @@ def add_call_constraints(model,
             if (next_date - curr_date).days == 1:
                 # Get providers who can take call on both dates
                 providers_both_days = []
-                for provider in shift_vars:
-                    if (curr_date in shift_vars[provider] and 'call' in shift_vars[provider][curr_date] and
+                for provider in call_eligible_providers:
+                    if (provider in shift_vars and
+                        curr_date in shift_vars[provider] and 'call' in shift_vars[provider][curr_date] and
                         next_date in shift_vars[provider] and 'call' in shift_vars[provider][next_date]):
                         providers_both_days.append(provider)
                 
@@ -419,8 +436,10 @@ def add_call_constraints(model,
         # Get all providers who could take call this week
         week_providers = set()
         for d in week_dates:
-            for provider in shift_vars:
-                if provider in shift_vars and d in shift_vars[provider] and 'call' in shift_vars[provider][d]:
+            for provider in call_eligible_providers:
+                if (provider in shift_vars and 
+                    d in shift_vars[provider] and 
+                    'call' in shift_vars[provider][d]):
                     week_providers.add(provider)
         
         # For each provider, create penalty for multiple call assignments
