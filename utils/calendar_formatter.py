@@ -162,69 +162,75 @@ def format_schedule_as_calendar(schedule_df,
         except Exception as e:
             print(f"Error processing inpatient assignments: {e}")
 
-    # Generate calendar structure
-    months = []
-    current_date = date(start_date.year, start_date.month, 1)
+    # NEW: Find all weeks that contain scheduled dates
+    scheduled_dates = set(schedule_dates)
+    scheduled_weeks = set()
     
-    while current_date <= end_date:
-        month_name = current_date.strftime('%B %Y')
-        
-        # Get first day of month and calculate padding
-        first_day = current_date
-        last_day = date(current_date.year, current_date.month, 
-                       calendar.monthrange(current_date.year, current_date.month)[1])
-        
-        # Start week on Sunday (0 = Monday, 6 = Sunday in Python)
-        first_weekday = first_day.weekday()
-        week_start = first_day - timedelta(days=(first_weekday + 1) % 7)
+    for sched_date in scheduled_dates:
+        # Find the Sunday that starts this week
+        first_weekday = sched_date.weekday()
+        week_start = sched_date - timedelta(days=(first_weekday + 1) % 7)
+        scheduled_weeks.add(week_start)
+    
+    print(f"Found {len(scheduled_weeks)} weeks containing scheduled dates")
+    
+    # Generate calendar structure - only for weeks with scheduled dates
+    months = []
+
+    # Group weeks by month for organization
+    weeks_by_month = defaultdict(list)
+    for week_start in sorted(scheduled_weeks):
+        # Determine which month this week primarily belongs to
+        # Use the date that's 3 days into the week (Wednesday) as the representative
+        week_mid = week_start + timedelta(days=3)
+        month_key = (week_mid.year, week_mid.month)
+        weeks_by_month[month_key].append(week_start)
+    
+    # Generate calendar for each month that has scheduled weeks
+    for (year, month), week_starts in sorted(weeks_by_month.items()):
+        month_name = date(year, month, 1).strftime('%B %Y')
         
         weeks = []
-        week_date = week_start
         
-        while week_date <= last_day or len(weeks) == 0 or len(weeks[-1]) < 7:
-            if len(weeks) == 0 or len(weeks[-1]) == 7:
-                weeks.append([])
+        for week_start in sorted(week_starts):
+            week = []
+            week_date = week_start
             
-            # Determine if this date is in the current month
-            is_current_month = week_date.month == current_date.month
-            
-            # Get schedule data for this date
-            day_sessions = {}
-            if week_date in schedule_by_date:
-                day_sessions = dict(schedule_by_date[week_date])
-            
-            # Add leave requests for this date
-            if week_date in leave_by_date:
-                day_sessions['leave'] = leave_by_date[week_date]
+            # Build the full week (7 days)
+            for day_num in range(7):
+                current_date = week_start + timedelta(days=day_num)
+                
+                # Determine if this date is in the current month
+                is_current_month = current_date.month == month
+                
+                # Get schedule data for this date
+                day_sessions = {}
+                if current_date in schedule_by_date:
+                    day_sessions = dict(schedule_by_date[current_date])
+                
+                # Add leave requests for this date
+                if current_date in leave_by_date:
+                    day_sessions['leave'] = leave_by_date[current_date]
 
-            # Add inpatient assignments for this date
-            if week_date in inpatient_by_date:
-                day_sessions['inpatient'] = inpatient_by_date[week_date]
+                # Add inpatient assignments for this date
+                if current_date in inpatient_by_date:
+                    day_sessions['inpatient'] = inpatient_by_date[current_date]
+                
+                day_data = {
+                    'date': current_date,
+                    'day': current_date.day,
+                    'is_current_month': is_current_month,
+                    'sessions': day_sessions
+                }
+                
+                week.append(day_data)
             
-            day_data = {
-                'date': week_date,
-                'day': week_date.day,
-                'is_current_month': is_current_month,
-                'sessions': day_sessions
-            }
-            
-            weeks[-1].append(day_data)
-            week_date += timedelta(days=1)
-            
-            # Stop if we've filled the month and completed the week
-            if week_date > last_day and len(weeks[-1]) == 7:
-                break
+            weeks.append(week)
         
         months.append({
             'name': month_name,
             'weeks': weeks
         })
-        
-        # Move to next month
-        if current_date.month == 12:
-            current_date = date(current_date.year + 1, 1, 1)
-        else:
-            current_date = date(current_date.year, current_date.month + 1, 1)
     
     return {'months': months}
 
