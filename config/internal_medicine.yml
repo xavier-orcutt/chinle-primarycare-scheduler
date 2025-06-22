@@ -29,7 +29,7 @@ clinic_rules:
 
   staffing:
     min_providers_per_session: 1
-    max_providers_per_session: 4
+    max_providers_per_session: 5
 
   holiday_dates:
     - 2025-01-01  # New Year's Day
@@ -43,6 +43,7 @@ clinic_rules:
     - 2025-11-11  # Veterans Day
     - 2025-11-27  # Thanksgiving
     - 2025-12-25  # Christmas
+    - 2026-01-01  # New Year's Day
 
 # Provider-level rules 
 providers:
@@ -50,7 +51,12 @@ providers:
     role: MD
     max_clinics_per_week: 4 
     needs_rdo: true
-  
+
+  Mcnett:
+    role: MD
+    max_clinics_per_week: 9
+    needs_rdo: false 
+
   Mcrae:
     role: PA
     max_clinics_per_week: 6
@@ -62,10 +68,15 @@ providers:
     needs_rdo: true
     rdo_preference: Friday
   
-  Orcutt:
-    role: MD
-    max_clinics_per_week: 5
-    needs_rdo: true
+  #Orcutt:
+  # role: MD
+  # max_clinics_per_week: 5
+  # needs_rdo: true
+
+  #Rafferty:
+  #  role: MD 
+  #  max_clinics_per_week: 9
+  #  needs_rdo: false
   
   Selig:
     role: NP

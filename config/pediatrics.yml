@@ -29,10 +29,9 @@ clinic_rules:
 
   staffing:
     min_providers_per_session: 1
-    max_providers_per_session: 3
+    max_providers_per_session: 4
 
   holiday_dates:
-    - 2025-01-01  # New Year's Day
     - 2025-01-20  # MLK Day
     - 2025-02-17  # Presidents' Day
     - 2025-05-26  # Memorial Day
@@ -43,6 +42,7 @@ clinic_rules:
     - 2025-11-11  # Veterans Day
     - 2025-11-27  # Thanksgiving
     - 2025-12-25  # Christmas
+    - 2026-01-01  # New Year's Day
 
 # Provider-level rules 
 providers:
@@ -50,53 +50,76 @@ providers:
     role: MD
     max_clinics_per_week: 6
     needs_rdo: true
-    max_calls_per_month: null      # No limit - can take unlimited call             
+    takes_call: true
+    max_calls_per_month: null                 
   
   Carrasco:
     role: MD
     max_clinics_per_week: 6
     needs_rdo: true
-    max_calls_per_month: null      
+    takes_call: true
+    max_calls_per_month: null   
+
+  Lichtman:
+    role: MD
+    max_clinics_per_week: 0
+    needs_rdo: false
+    takes_call: true
+    max_calls_per_month: 3      
 
   Mador: 
     role: MD
     max_clinics_per_week: 6
     needs_rdo: true
+    takes_call: true
     max_calls_per_month: null
   
   Menachof:
     role: MD
     max_clinics_per_week: 3
     needs_rdo: true
+    takes_call: true
     max_calls_per_month: null
 
   Miller:
     role: MD
     max_clinics_per_week: 6
     needs_rdo: true
+    takes_call: true
     max_calls_per_month: null
 
   Powell:
     role: MD
-    max_clinics_per_week: 0   # Family doctor who takes call but does clinics in family practice
-    needs_rdo: false          # RDO will be assigned in family practice scheduler
-    fracture_clinic: true     # Does fracture clinic on Wednesdays in family practice impacting Tuesday call 
-    max_calls_per_month: 3    # Limited to 2 calls per 28-day period
+    max_clinics_per_week: 0   
+    needs_rdo: false          
+    fracture_clinic: true     
+    takes_call: true     
+    max_calls_per_month: 3    
 
   Shin: 
     role: MD
     max_clinics_per_week: 0
-    needs_rdo: false           
-    max_calls_per_month: 3        
+    needs_rdo: false
+    takes_call: true           
+    max_calls_per_month: 3
+
+  Snyder: 
+    role: MD 
+    max_clinics_per_week: 9
+    needs_rdo: false
+    takes_call: false
+    max_calls_per_month: null       
 
   Sridhar: 
     role: MD
     max_clinics_per_week: 6
     needs_rdo: true
+    takes_call: true 
     max_calls_per_month: null
   
-  Tarr:
-    role: MD
-    max_clinics_per_week: 6
-    needs_rdo: true
-    max_calls_per_month: null
+  #Tarr:
+  #  role: MD
+  #  max_clinics_per_week: 6
+  #  needs_rdo: true
+  #  takes_call: true 
+  #  max_calls_per_month: null
