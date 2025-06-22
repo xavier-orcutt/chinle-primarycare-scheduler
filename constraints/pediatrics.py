@@ -382,26 +382,117 @@ def add_call_constraints(model,
         week_key = get_schedule_week_key(date)
         outpatient_weeks[week_key].append(date)
     
-    # Process each week
+    # Identify holiday pairings and track which providers are assigned
+    for holiday in holiday_dates:
+        if holiday in sun_thu_call_dates:
+            holiday_day = holiday.strftime('%A')
+            week_key = get_schedule_week_key(holiday)
+            
+            # For M-Th holidays: track provider assigned to day before + holiday
+            if holiday_day in ['Monday', 'Tuesday', 'Wednesday', 'Thursday']:
+                day_before = holiday - timedelta(days=1)
+                if day_before in sun_thu_call_dates:
+                    # Create constraint that same provider works both days (already done above)
+                    # And collect providers who could be assigned to this pairing
+                    potential_holiday_providers = []
+                    for provider in call_eligible_providers:
+                        if (provider in shift_vars and
+                            day_before in shift_vars[provider] and 'call' in shift_vars[provider][day_before] and
+                            holiday in shift_vars[provider] and 'call' in shift_vars[provider][holiday] and
+                            provider not in inpatient_blocked_dates[day_before] and
+                            provider not in inpatient_blocked_dates[holiday] and
+                            provider not in leave_blocked_dates[day_before] and
+                            provider not in leave_blocked_dates[holiday]):
+                            potential_holiday_providers.append(provider)
+                    
+                    # Block each potential holiday provider from other calls this week
+                    week_dates = outpatient_weeks[week_key]
+                    other_dates = [d for d in week_dates if d not in [day_before, holiday]]
+                    
+                    for provider in potential_holiday_providers:
+                        for other_date in other_dates:
+                            if (provider in shift_vars and 
+                                other_date in shift_vars[provider] and 
+                                'call' in shift_vars[provider][other_date]):
+                                
+                                # If provider takes holiday pairing, block other calls
+                                holiday_call = shift_vars[provider][holiday]['call']
+                                other_call = shift_vars[provider][other_date]['call']
+                                model.Add(other_call == 0).OnlyEnforceIf(holiday_call)
+            
+            # For Friday holidays: track provider assigned to Thursday + Sunday
+            elif holiday_day == 'Friday':
+                thursday_before = holiday - timedelta(days=1)
+                sunday_after = holiday + timedelta(days=2)
+                
+                if thursday_before in sun_thu_call_dates and sunday_after in sun_thu_call_dates:
+                    thursday_week_key = get_schedule_week_key(thursday_before)
+                    sunday_week_key = get_schedule_week_key(sunday_after)
+                    
+                    # Get potential providers for this pairing
+                    potential_holiday_providers = []
+                    for provider in call_eligible_providers:
+                        if (provider in shift_vars and
+                            thursday_before in shift_vars[provider] and 'call' in shift_vars[provider][thursday_before] and
+                            sunday_after in shift_vars[provider] and 'call' in shift_vars[provider][sunday_after] and
+                            provider not in inpatient_blocked_dates[thursday_before] and
+                            provider not in inpatient_blocked_dates[sunday_after] and
+                            provider not in leave_blocked_dates[thursday_before] and
+                            provider not in leave_blocked_dates[sunday_after]):
+                            potential_holiday_providers.append(provider)
+                    
+                    # Block holiday provider from other calls in both weeks
+                    thursday_week_dates = [d for d in outpatient_weeks[thursday_week_key] if d != thursday_before]
+                    sunday_week_dates = [d for d in outpatient_weeks[sunday_week_key] if d != sunday_after]
+                    
+                    for provider in potential_holiday_providers:
+                        for other_date in thursday_week_dates + sunday_week_dates:
+                            if (provider in shift_vars and 
+                                other_date in shift_vars[provider] and 
+                                'call' in shift_vars[provider][other_date]):
+                                
+                                # If provider takes holiday pairing, block other calls
+                                holiday_call = shift_vars[provider][thursday_before]['call']
+                                other_call = shift_vars[provider][other_date]['call']
+                                model.Add(other_call == 0).OnlyEnforceIf(holiday_call)
+    
+    # Process each week for regular back-to-back prevention
     for week_start, week_dates in outpatient_weeks.items():
         # Find holidays in this outpatient week
         week_holidays = [d for d in holiday_dates if d in week_dates]
         
-        # Skip back-to-back enforcement if there's a M-Th holiday this week
-        # (because holiday pairing rules take precedence)
-        mon_to_thu_holiday = any(h.strftime('%A') in ['Monday', 'Tuesday', 'Wednesday', 'Thursday'] 
-                                for h in week_holidays)
-        if mon_to_thu_holiday:
-            continue
+        # Collect holiday pairing dates to exempt from back-to-back rules
+        holiday_pairing_dates = set()
+        for holiday in week_holidays:
+            holiday_day = holiday.strftime('%A')
+            if holiday_day in ['Monday', 'Tuesday', 'Wednesday', 'Thursday']:
+                day_before = holiday - timedelta(days=1)
+                if day_before in week_dates:
+                    holiday_pairing_dates.update([day_before, holiday])
         
-        # Enforce no back-to-back constraint within the week
+        # Enforce no back-to-back constraint within the week, except for holiday pairings
         for i in range(len(week_dates) - 1):
             curr_date = week_dates[i]
             next_date = week_dates[i + 1]
             
             # Check if consecutive days
             if (next_date - curr_date).days == 1:
-                # Get providers who can take call on both dates
+                # Skip if this is a holiday pairing (already handled above)
+                if curr_date in holiday_pairing_dates and next_date in holiday_pairing_dates:
+                    continue
+                
+                # Skip back-to-back prevention during Christmas/New Year period (Dec 21 - Dec 26)
+                #is_christmas_period = False
+                #for check_date in [curr_date, next_date]:
+                #    if ((check_date.month == 12 and check_date.day >= 21) or 
+                #        (check_date.month == 12 and check_date.day <= 26)):
+                #        is_christmas_period = True
+                #        break
+                
+                #if is_christmas_period:
+                #    continue  # Allow back-to-back calls during Christmas period
+
+                # Get call-eligible providers who can take call on both dates
                 providers_both_days = []
                 for provider in call_eligible_providers:
                     if (provider in shift_vars and
@@ -409,12 +500,12 @@ def add_call_constraints(model,
                         next_date in shift_vars[provider] and 'call' in shift_vars[provider][next_date]):
                         providers_both_days.append(provider)
                 
-                # No back-to-back calls
+                # No back-to-back calls for non-holiday pairs
                 for provider in providers_both_days:
                     takes_curr = shift_vars[provider][curr_date]['call']
                     takes_next = shift_vars[provider][next_date]['call']
                     model.Add(takes_curr + takes_next <= 1)
-
+   
     # ========================================================================
     # SECTION D: SOFT CONSTRAINTS (PENALTIES)
     # ========================================================================

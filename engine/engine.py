@@ -638,9 +638,8 @@ def create_peds_schedule(
                 date_obj = day
                 day_of_week = date_obj.strftime('%A')
                 
-                # For tracking weekly call, use Sunday-Thursday as a "call week"
-                call_week_start = date_obj - timedelta(days=date_obj.weekday() + 1)  # Get Sunday
-                call_week_key = (call_week_start.year, call_week_start.isocalendar()[1])
+                # Use standard ISO week for call counting (Monday-Sunday)
+                iso_week_key = (date_obj.year, date_obj.isocalendar()[1])
                 
                 for session in calendar[day]:
                     scheduled = [
@@ -654,7 +653,7 @@ def create_peds_schedule(
                     if session == 'call':
                         # Update call counts
                         for provider in scheduled:
-                            call_sessions[provider][call_week_key] += 1
+                            call_sessions[provider][iso_week_key] += 1
                         
                         # Add to call schedule data
                         call_schedule_data.append({
@@ -704,7 +703,7 @@ def create_peds_schedule(
                 for week in call_weeks:
                     week_num = week[1]
                     call_count = call_sessions[provider][week]
-                    call_data[f'week_{week_num+1}'] = call_count
+                    call_data[f'week_{week_num}'] = call_count
                     total_call += call_count
                 
                 # Add total call
