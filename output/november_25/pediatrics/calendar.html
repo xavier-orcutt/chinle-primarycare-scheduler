@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Pediatrics Calendar</title>
+    <meta charset="UTF-8">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 10px;
+            background-color: #f8f9fa;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .legend {
+            background-color: white;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .legend-items {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 8px;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            font-size: 13px;
+        }
+        .legend-color {
+            width: 16px;
+            height: 16px;
+            border-radius: 2px;
+            margin-right: 8px;
+            border-left: 3px solid;
+        }
+        .legend-color.morning {
+            background-color: #e8f4fd;
+            border-left-color: #2196f3;
+        }
+        .legend-color.afternoon {
+            background-color: #fff8e1;
+            border-left-color: #ff9800;
+        }
+        .legend-color.call {
+            background-color: #ffebee;
+            border-left-color: #f44336;
+        }
+        .legend-color.inpatient {
+            background-color: #e8f5e8;
+            border-left-color: #4caf50;
+        }
+        .legend-color.leave {
+            background-color: #f3e5f5;
+            border-left-color: #9c27b0;
+        }
+        .month {
+            margin-bottom: 30px;
+            background-color: white;
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .month-header {
+            font-size: 24px;
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 15px;
+            color: #2c3e50;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 8px;
+        }
+        .calendar {
+            width: 100%;
+            border-collapse: collapse;
+            border: 2px solid #34495e;
+            border-radius: 6px;
+            overflow: hidden;
+        }
+        .calendar th {
+            background-color: #3498db;
+            color: white;
+            padding: 8px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 12px;
+        }
+        .calendar td {
+            border: 1px solid #bdc3c7;
+            width: 14.28%;
+            height: 120px;
+            vertical-align: top;
+            padding: 4px;
+        }
+        .day-number {
+            font-weight: bold;
+            font-size: 14px;
+            margin-bottom: 4px;
+            color: #2c3e50;
+        }
+        .other-month {
+            background-color: #ecf0f1;
+            color: #95a5a6;
+        }
+        .session {
+            font-size: 9px;
+            margin: 1px 0;
+            padding: 1px 2px;
+            border-radius: 2px;
+            line-height: 1.2;
+            border-left: 2px solid;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+        }
+        .morning {
+            background-color: #e8f4fd;
+            border-left-color: #2196f3;
+            color: #1565c0;
+        }
+        .afternoon {
+            background-color: #fff8e1;
+            border-left-color: #ff9800;
+            color: #e65100;
+        }
+        .call {
+            background-color: #ffebee;
+            border-left-color: #f44336;
+            color: #c62828;
+        }
+        .inpatient {
+            background-color: #e8f5e8;
+            border-left-color: #4caf50;
+            color: #2e7d32;
+        }
+        .leave {
+            background-color: #f3e5f5;
+            border-left-color: #9c27b0;
+            color: #7b1fa2;
+        }
+        .weekend {
+            background-color: #f8f9fa;
+        }
+        .weekend .day-number {
+            color: #6c757d;
+        }
+        @media print {
+            body { background-color: white; }
+            .month { page-break-after: always; box-shadow: none; }
+            .month:last-child { page-break-after: auto; }
+            .header { box-shadow: none; }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Pediatrics Calendar</h1>
+        <p>Generated on June 22, 2025</p>
+    </div>
+
+    <div class="month">
+        <div class="month-header">November 2025</div>
+        <table class="calendar">
+            <thead>
+                <tr>
+                    <th>Sunday</th>
+                    <th>Monday</th>
+                    <th>Tuesday</th>
+                    <th>Wednesday</th>
+                    <th>Thursday</th>
+                    <th>Friday</th>
+                    <th>Saturday</th>
+                </tr>
+            </thead>
+            <tbody>
+        <tr><td class="weekend"><div class="day-number">2</div><div style="height: 24px;"></div><div class="session inpatient"><strong>IP:</strong> Menachof</div><div class="session call"><strong>CALL:</strong> Bedele</div></td><td class=""><div class="day-number">3</div><div class="session morning"><strong>AM:</strong> Bedele, Mador, Sridhar</div><div class="session afternoon"><strong>PM:</strong> Mador, Sridhar</div><div class="session inpatient"><strong>IP:</strong> Menachof</div><div class="session call"><strong>CALL:</strong> Powell</div><div class="session leave"><strong>LR:</strong> Snyder</div></td><td class=""><div class="day-number">4</div><div class="session morning"><strong>AM:</strong> Mador, Miller, Sridhar</div><div class="session afternoon"><strong>PM:</strong> Mador, Miller, Sridhar</div><div class="session inpatient"><strong>IP:</strong> Shin, Carrasco</div><div class="session call"><strong>CALL:</strong> Menachof</div><div class="session leave"><strong>LR:</strong> Snyder</div></td><td class=""><div class="day-number">5</div><div class="session morning"><strong>AM:</strong> Bedele, Mador, Miller, Sridhar</div><div class="session afternoon"><strong>PM:</strong> Bedele, Mador, Miller, Sridhar</div><div class="session inpatient"><strong>IP:</strong> Shin, Carrasco</div><div class="session call"><strong>CALL:</strong> Miller</div><div class="session leave"><strong>LR:</strong> Snyder</div></td><td class=""><div class="day-number">6</div><div style="height: 11px;"></div><div class="session afternoon"><strong>PM:</strong> Bedele, Menachof</div><div class="session inpatient"><strong>IP:</strong> Shin, Carrasco</div><div class="session call"><strong>CALL:</strong> Lichtman</div><div class="session leave"><strong>LR:</strong> Powell, Mador, Snyder</div></td><td class=""><div class="day-number">7</div><div class="session morning"><strong>AM:</strong> Bedele, Miller</div><div class="session afternoon"><strong>PM:</strong> Bedele, Miller</div><div class="session inpatient"><strong>IP:</strong> Shin, Carrasco</div><div class="session call"><strong>CALL:</strong> Carrasco</div><div class="session leave"><strong>LR:</strong> Powell, Mador, Snyder</div></td><td class="weekend"><div class="day-number">8</div><div style="height: 24px;"></div><div class="session inpatient"><strong>IP:</strong> Shin, Carrasco</div><div class="session call"><strong>CALL:</strong> Carrasco</div></td></tr><tr><td class="weekend"><div class="day-number">9</div><div style="height: 24px;"></div><div class="session inpatient"><strong>IP:</strong> Shin, Carrasco</div><div class="session call"><strong>CALL:</strong> Menachof</div></td><td class=""><div class="day-number">10</div><div class="session morning"><strong>AM:</strong> Bedele, Mador, Sridhar</div><div class="session afternoon"><strong>PM:</strong> Bedele, Mador, Sridhar</div><div class="session inpatient"><strong>IP:</strong> Shin, Carrasco</div><div class="session call"><strong>CALL:</strong> Bedele</div><div class="session leave"><strong>LR:</strong> Powell, Snyder</div></td><td class=""><div class="day-number">11</div><div class="session inpatient"><strong>IP:</strong> Miller</div><div class="session call"><strong>CALL:</strong> Bedele</div></td><td class=""><div class="day-number">12</div><div class="session morning"><strong>AM:</strong> Bedele, Carrasco, Mador</div><div class="session afternoon"><strong>PM:</strong> Carrasco, Mador, Menachof</div><div class="session inpatient"><strong>IP:</strong> Miller</div><div class="session call"><strong>CALL:</strong> Menachof</div><div class="session leave"><strong>LR:</strong> Sridhar, Snyder</div></td><td class=""><div class="day-number">13</div><div style="height: 11px;"></div><div class="session afternoon"><strong>PM:</strong> Bedele, Carrasco, Mador</div><div class="session inpatient"><strong>IP:</strong> Miller</div><div class="session call"><strong>CALL:</strong> Powell</div><div class="session leave"><strong>LR:</strong> Sridhar, Snyder</div></td><td class=""><div class="day-number">14</div><div class="session morning"><strong>AM:</strong> Bedele, Menachof</div><div class="session afternoon"><strong>PM:</strong> Bedele, Menachof</div><div class="session inpatient"><strong>IP:</strong> Miller</div><div class="session call"><strong>CALL:</strong> Miller</div><div class="session leave"><strong>LR:</strong> Mador, Sridhar, Snyder</div></td><td class="weekend"><div class="day-number">15</div><div style="height: 24px;"></div><div class="session inpatient"><strong>IP:</strong> Miller</div><div class="session call"><strong>CALL:</strong> Miller</div></td></tr><tr><td class="weekend"><div class="day-number">16</div><div style="height: 24px;"></div><div class="session inpatient"><strong>IP:</strong> Miller</div><div class="session call"><strong>CALL:</strong> Lichtman</div></td><td class=""><div class="day-number">17</div><div class="session morning"><strong>AM:</strong> Carrasco, Mador</div><div class="session afternoon"><strong>PM:</strong> Carrasco, Mador, Snyder</div><div class="session inpatient"><strong>IP:</strong> Miller</div><div class="session call"><strong>CALL:</strong> Powell</div><div class="session leave"><strong>LR:</strong> Shin, Menachof, Sridhar, Snyder</div></td><td class=""><div class="day-number">18</div><div class="session morning"><strong>AM:</strong> Carrasco, Miller, Snyder, Sridhar</div><div class="session afternoon"><strong>PM:</strong> Carrasco, Miller, Snyder, Sridhar</div><div class="session inpatient"><strong>IP:</strong> Bedele</div><div class="session call"><strong>CALL:</strong> Miller</div><div class="session leave"><strong>LR:</strong> Mador, Menachof</div></td><td class=""><div class="day-number">19</div><div class="session morning"><strong>AM:</strong> Carrasco, Miller, Snyder, Sridhar</div><div class="session afternoon"><strong>PM:</strong> Carrasco, Snyder, Sridhar</div><div class="session inpatient"><strong>IP:</strong> Bedele</div><div class="session call"><strong>CALL:</strong> Shin</div><div class="session leave"><strong>LR:</strong> Mador, Menachof</div></td><td class=""><div class="day-number">20</div><div style="height: 11px;"></div><div class="session afternoon"><strong>PM:</strong> Mador, Miller, Snyder, Sridhar</div><div class="session inpatient"><strong>IP:</strong> Bedele</div><div class="session call"><strong>CALL:</strong> Sridhar</div><div class="session leave"><strong>LR:</strong> Carrasco, Menachof</div></td><td class=""><div class="day-number">21</div><div class="session morning"><strong>AM:</strong> Mador, Snyder, Sridhar</div><div class="session afternoon"><strong>PM:</strong> Mador, Snyder</div><div class="session inpatient"><strong>IP:</strong> Bedele</div><div class="session call"><strong>CALL:</strong> Bedele</div><div class="session leave"><strong>LR:</strong> Carrasco, Menachof, Lichtman</div></td><td class="weekend"><div class="day-number">22</div><div style="height: 24px;"></div><div class="session inpatient"><strong>IP:</strong> Bedele</div><div class="session call"><strong>CALL:</strong> Bedele</div></td></tr><tr><td class="weekend"><div class="day-number">23</div><div style="height: 24px;"></div><div class="session inpatient"><strong>IP:</strong> Bedele</div><div class="session call"><strong>CALL:</strong> Mador</div></td><td class=""><div class="day-number">24</div><div class="session morning"><strong>AM:</strong> Mador, Miller, Snyder</div><div class="session afternoon"><strong>PM:</strong> Miller, Snyder</div><div class="session inpatient"><strong>IP:</strong> Bedele</div><div class="session call"><strong>CALL:</strong> Lichtman</div><div class="session leave"><strong>LR:</strong> Powell, Bedele, Carrasco, Sridhar</div></td><td class=""><div class="day-number">25</div><div class="session morning"><strong>AM:</strong> Mador, Miller, Snyder</div><div class="session afternoon"><strong>PM:</strong> Mador, Miller, Snyder</div><div class="session inpatient"><strong>IP:</strong> Menachof</div><div class="session call"><strong>CALL:</strong> Mador</div><div class="session leave"><strong>LR:</strong> Powell, Bedele, Carrasco, Sridhar</div></td><td class=""><div class="day-number">26</div><div class="session morning"><strong>AM:</strong> Mador, Miller, Snyder</div><div class="session afternoon"><strong>PM:</strong> Miller, Snyder</div><div class="session inpatient"><strong>IP:</strong> Menachof</div><div class="session call"><strong>CALL:</strong> Miller</div><div class="session leave"><strong>LR:</strong> Powell, Bedele, Carrasco, Sridhar</div></td><td class=""><div class="day-number">27</div><div class="session inpatient"><strong>IP:</strong> Menachof</div><div class="session call"><strong>CALL:</strong> Miller</div></td><td class=""><div class="day-number">28</div><div class="session morning"><strong>AM:</strong> Mador, Snyder</div><div class="session afternoon"><strong>PM:</strong> Mador, Snyder</div><div class="session inpatient"><strong>IP:</strong> Menachof</div><div class="session call"><strong>CALL:</strong> Menachof</div><div class="session leave"><strong>LR:</strong> Powell, Bedele, Carrasco, Sridhar</div></td><td class="weekend"><div class="day-number">29</div><div style="height: 24px;"></div><div class="session inpatient"><strong>IP:</strong> Menachof</div><div class="session call"><strong>CALL:</strong> Menachof</div></td></tr>
+            </tbody>
+        </table>
+    </div>
+        
+    <div class="legend">
+        <div class="legend-items">
+            <div class="legend-item">
+                <div class="legend-color morning"></div>
+                <span><strong>AM:</strong> Morning Clinic</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color afternoon"></div>
+                <span><strong>PM:</strong> Afternoon Clinic</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color inpatient"></div>
+                <span><strong>IP:</strong> Inpatient Provider</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color call"></div>
+                <span><strong>CALL:</strong> Call Assignment</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color leave"></div>
+                <span><strong>LR:</strong> Leave Request</span>
+            </div>
+        </div>
+    </div>
+    </body></html>
